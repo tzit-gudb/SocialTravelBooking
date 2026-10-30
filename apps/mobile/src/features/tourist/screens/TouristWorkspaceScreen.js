@@ -1,15 +1,15 @@
 import React, { useState } from "react";
 import { StyleSheet, ScrollView } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { colors, spacing } from "../theme/tokens";
-import { useAuth } from "../hooks/useAuth";
+import { colors, spacing } from "../../../theme/tokens";
+import { useAuth } from "../../../hooks/useAuth";
 
 // Import các sub-components theo kiến trúc Component-Based Architecture
-import TouristHeader from "./components/tourist/TouristHeader";
-import TouristSummaryCards from "./components/tourist/TouristSummaryCards";
-import TouristDealCard from "./components/tourist/TouristDealCard";
-import TouristQrTicketCard from "./components/tourist/TouristQrTicketCard";
-import TouristBottomBar from "./components/tourist/TouristBottomBar";
+import TouristHeader from "../components/TouristHeader";
+import TouristSummaryCards from "../components/TouristSummaryCards";
+import TouristDealCard from "../components/TouristDealCard";
+import TouristQrTicketCard from "../components/TouristQrTicketCard";
+import TouristBottomBar from "../components/TouristBottomBar";
 
 const TOURIST_TABS = [
   { id: "explore", label: "Khám phá" },

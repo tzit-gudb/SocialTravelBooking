@@ -15,6 +15,9 @@ class SyncAuthRequest extends FormRequest
     public function rules(): array
     {
         return [
+            'firebase_uid' => ['nullable', 'string', 'max:255'],
+            'email' => ['nullable', 'email', 'max:255'],
+            'password' => ['nullable', 'string', 'min:6', 'max:100'],
             'displayName' => ['nullable', 'string', 'min:2', 'max:100'],
             'display_name' => ['nullable', 'string', 'min:2', 'max:100'],
             'avatarUrl' => ['nullable', 'string', 'max:2048'],

@@ -1,6 +1,7 @@
 import React from "react";
 
 const VARIANT_CLASSES = {
+  logo: "font-logo font-bold tracking-tight",
   display: "text-3xl sm:text-4xl font-bold tracking-tight leading-[1.15]",
   h1: "text-2xl font-bold tracking-tight leading-snug text-ink-primary",
   h2: "text-xl font-bold tracking-tight leading-snug text-ink-primary",

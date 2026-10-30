@@ -2,6 +2,14 @@
   "name": "@stb/shared-types",
   "version": "0.0.1",
   "private": true,
-  "main": "src/index.ts",
-  "types": "src/index.ts"
+  "main": "src/index.js",
+  "module": "src/index.js",
+  "types": "src/index.ts",
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "import": "./src/index.js",
+      "default": "./src/index.js"
+    }
+  }
 }

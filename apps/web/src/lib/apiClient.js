@@ -113,6 +113,7 @@ async function request(endpoint, options = {}) {
   const requestHeaders = {
     Accept: "application/json",
     "Content-Type": "application/json",
+    "X-Platform": "web",
     ...headers,
   };
 

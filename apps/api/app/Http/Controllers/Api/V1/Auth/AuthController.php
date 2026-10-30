@@ -26,7 +26,15 @@ class AuthController extends Controller
     public function register(RegisterRequest $request): JsonResponse
     {
         try {
-            $result = $this->authService->registerWithCredentials($request->validated());
+            $data = $request->validated();
+
+            // Nếu client không truyền role rõ ràng, tự động suy luận theo nền tảng (X-Platform)
+            if (empty($data['role'])) {
+                $platform = strtolower($request->header('X-Platform', ''));
+                $data['role'] = ($platform === 'web') ? 'provider' : 'tourist';
+            }
+
+            $result = $this->authService->registerWithCredentials($data);
 
             return response()->json([
                 'success' => true,
@@ -36,7 +44,7 @@ class AuthController extends Controller
                 'is_new_user' => true,
             ], 201);
         } catch (\Throwable $e) {
-            Log::error('Auth Register Error: ' . $e->getMessage(), [
+            Log::error('Auth Register Error: '.$e->getMessage(), [
                 'file' => $e->getFile(),
                 'line' => $e->getLine(),
             ]);
@@ -75,7 +83,7 @@ class AuthController extends Controller
                 'errors' => $e->errors(),
             ], 422);
         } catch (\Throwable $e) {
-            Log::error('Auth Login Error: ' . $e->getMessage(), [
+            Log::error('Auth Login Error: '.$e->getMessage(), [
                 'file' => $e->getFile(),
                 'line' => $e->getLine(),
             ]);
@@ -97,22 +105,35 @@ class AuthController extends Controller
             $validated = $request->validated();
             $firebaseUserClaims = $request->attributes->get('firebaseUser', []);
 
+            $firebaseUid = $request->attributes->get('firebaseUid')
+                ?? $validated['firebase_uid']
+                ?? null;
+
+            $firebaseEmail = $request->attributes->get('firebaseEmail')
+                ?? $validated['email']
+                ?? null;
+
+            $platform = strtolower($request->header('X-Platform', ''));
+            $defaultRole = ($platform === 'web') ? 'provider' : 'tourist';
+
             $firebaseData = [
-                'uid' => $request->attributes->get('firebaseUid'),
-                'email' => $request->attributes->get('firebaseEmail'),
+                'uid' => $firebaseUid,
+                'firebase_uid' => $firebaseUid,
+                'email' => $firebaseEmail,
+                'password' => $validated['password'] ?? null,
                 'name' => $validated['displayName']
                     ?? $validated['display_name']
                     ?? ($firebaseUserClaims['name'] ?? null),
                 'picture' => $validated['avatarUrl']
                     ?? $validated['avatar_url']
                     ?? ($firebaseUserClaims['picture'] ?? null),
-                'role' => $validated['role'] ?? 'tourist',
+                'role' => $validated['role'] ?? $defaultRole,
                 'phone' => $validated['phone'] ?? null,
                 'business_name' => $validated['business_name'] ?? null,
                 'business_type' => $validated['business_type'] ?? null,
             ];
 
-            if (!$firebaseData['uid']) {
+            if (! $firebaseData['uid']) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Không tìm thấy định danh xác thực trong yêu cầu.',
@@ -131,7 +152,7 @@ class AuthController extends Controller
                 'is_new_user' => $result['is_new_user'],
             ]);
         } catch (\Throwable $e) {
-            Log::error('Auth Sync Error: ' . $e->getMessage(), [
+            Log::error('Auth Sync Error: '.$e->getMessage(), [
                 'trace' => $e->getTraceAsString(),
             ]);
 
@@ -151,14 +172,12 @@ class AuthController extends Controller
         /** @var User|null $user */
         $user = $request->user() ?? $request->attributes->get('userModel');
 
-        if (!$user) {
+        if (! $user) {
             return response()->json([
                 'success' => false,
                 'message' => 'Không tìm thấy thông tin người dùng.',
             ], 404);
         }
-
-        $this->authService->ensureUserEcosystem($user);
 
         return response()->json([
             'success' => true,

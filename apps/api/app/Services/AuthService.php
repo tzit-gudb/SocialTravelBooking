@@ -12,65 +12,99 @@ use App\Models\User;
 use App\Models\Wallet;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
+use Kreait\Firebase\Exception\Auth\UserNotFound;
+use Kreait\Laravel\Firebase\Facades\Firebase;
 
 class AuthService
 {
     /**
-     * Đồng bộ tài khoản từ Firebase (Đăng nhập / Đăng ký qua Firebase hoặc Google OAuth).
+     * Tự động đồng bộ tài khoản với Firebase Admin SDK để đảm bảo tài khoản luôn có firebase_uid.
+     */
+    public function syncWithFirebaseAdmin(string $email, ?string $password = null): ?string
+    {
+        try {
+            $auth = Firebase::auth();
+            try {
+                $firebaseUser = $auth->getUserByEmail($email);
+
+                return $firebaseUser->uid;
+            } catch (UserNotFound $e) {
+                $properties = ['email' => $email];
+                if (! empty($password) && strlen($password) >= 6) {
+                    $properties['password'] = $password;
+                }
+                $firebaseUser = $auth->createUser($properties);
+
+                return $firebaseUser->uid;
+            }
+        } catch (\Throwable $e) {
+            Log::warning('Firebase Admin Sync Warning: '.$e->getMessage());
+
+            return null;
+        }
+    }
+
+    /**
+     * Đồng bộ tài khoản từ Firebase (Đăng nhập / Đăng ký qua Firebase Email/Password hoặc Google OAuth).
+     * Chỉ tạo bản ghi users và phân quyền, KHÔNG tự động tạo hồ sơ profile.
      */
     public function syncFirebaseUser(array $firebaseData): array
     {
         return DB::transaction(function () use ($firebaseData) {
-            $firebaseUid = $firebaseData['uid'];
+            $firebaseUid = $firebaseData['uid'] ?? $firebaseData['firebase_uid'] ?? null;
             $firebaseEmail = isset($firebaseData['email']) ? strtolower(trim($firebaseData['email'])) : null;
+            $password = $firebaseData['password'] ?? null;
             $requestedRole = in_array($firebaseData['role'] ?? '', [UserRole::Tourist->value, UserRole::Provider->value], true)
                 ? $firebaseData['role']
-                : UserRole::Tourist->value;
+                : UserRole::Provider->value;
 
             $isNewUser = false;
 
-            $user = User::where('firebase_uid', $firebaseUid)->first();
-
-            if (!$user && $firebaseEmail) {
+            $user = null;
+            if ($firebaseUid) {
+                $user = User::where('firebase_uid', $firebaseUid)->first();
+            }
+            if (! $user && $firebaseEmail) {
                 $user = User::where('email', $firebaseEmail)->first();
-                if ($user) {
-                    $user->update(['firebase_uid' => $firebaseUid]);
+                if ($user && $firebaseUid && empty($user->firebase_uid)) {
+                    $user->firebase_uid = $firebaseUid;
                 }
             }
 
-            $displayName = $firebaseData['name']
-                ?? ($firebaseEmail ? explode('@', $firebaseEmail)[0] : 'Thành viên mới');
+            if ($user && $user->status === UserStatus::Banned->value) {
+                throw ValidationException::withMessages([
+                    'email' => ['Tài khoản của bạn đã bị tạm khóa. Vui lòng liên hệ bộ phận hỗ trợ.'],
+                ]);
+            }
 
-            if (!$user) {
+            if (! $user) {
                 $isNewUser = true;
 
                 $user = User::create([
                     'firebase_uid' => $firebaseUid,
-                    'name' => $displayName,
-                    'email' => $firebaseEmail ?? ($firebaseUid . '@firebase.local'),
-                    'password' => Hash::make(Str::random(24)),
-                    'avatar_url' => $firebaseData['picture'] ?? null,
+                    'email' => $firebaseEmail ?? ($firebaseUid.'@firebase.local'),
+                    'password' => $password ? Hash::make($password) : null,
                     'role' => $requestedRole,
                     'status' => UserStatus::Active->value,
-                    'social_active' => true,
-                    'email_verified_at' => now(),
+                    'social_active' => false,
                 ]);
             } else {
-                $updates = [];
-                if (!empty($firebaseData['name']) && $user->name !== $firebaseData['name']) {
-                    $updates['name'] = $firebaseData['name'];
+                $dirty = false;
+                if ($firebaseUid && empty($user->firebase_uid)) {
+                    $user->firebase_uid = $firebaseUid;
+                    $dirty = true;
                 }
-                if (!empty($firebaseData['picture']) && !$user->avatar_url) {
-                    $updates['avatar_url'] = $firebaseData['picture'];
+                if ($password) {
+                    $user->password = Hash::make($password);
+                    $dirty = true;
                 }
-                if (!empty($updates)) {
-                    $user->update($updates);
+                if ($dirty) {
+                    $user->save();
                 }
             }
-
-            $this->ensureUserEcosystem($user, $firebaseData);
 
             $sanctumToken = $user->createToken('stb_client_token')->plainTextToken;
 
@@ -83,26 +117,30 @@ class AuthService
     }
 
     /**
-     * Đăng ký tài khoản mới trực tiếp qua Backend API.
+     * Đăng ký tài khoản mới trực tiếp qua Backend API (dùng cho Mobile & Web).
+     * Tự động đồng bộ sang Firebase Auth để lấy firebase_uid cho role tourist.
+     * KHÔNG tự động tạo hồ sơ profile.
      */
     public function registerWithCredentials(array $data): array
     {
         return DB::transaction(function () use ($data) {
+            $email = strtolower(trim($data['email']));
+            $password = $data['password'];
             $role = in_array($data['role'] ?? '', [UserRole::Tourist->value, UserRole::Provider->value], true)
                 ? $data['role']
                 : UserRole::Tourist->value;
 
+            // Đảm bảo có firebase_uid bằng cách đồng bộ sang Firebase Auth
+            $firebaseUid = $data['firebase_uid'] ?? $this->syncWithFirebaseAdmin($email, $password);
+
             $user = User::create([
-                'name' => $data['name'],
-                'email' => strtolower(trim($data['email'])),
-                'password' => $data['password'],
+                'firebase_uid' => $firebaseUid,
+                'email' => $email,
+                'password' => Hash::make($password),
                 'role' => $role,
                 'status' => UserStatus::Active->value,
-                'social_active' => true,
-                'email_verified_at' => now(),
+                'social_active' => false,
             ]);
-
-            $this->ensureUserEcosystem($user, $data);
 
             $token = $user->createToken('stb_client_token')->plainTextToken;
 
@@ -122,7 +160,7 @@ class AuthService
         $normalizedEmail = strtolower(trim($email));
         $user = User::where('email', $normalizedEmail)->first();
 
-        if (!$user || !$user->password || !Hash::check($password, $user->password)) {
+        if (! $user || ! $user->password || ! Hash::check($password, $user->password)) {
             throw ValidationException::withMessages([
                 'email' => ['Email hoặc mật khẩu không chính xác. Vui lòng kiểm tra lại.'],
             ]);
@@ -134,7 +172,13 @@ class AuthService
             ]);
         }
 
-        $this->ensureUserEcosystem($user);
+        // Tự động đồng bộ firebase_uid nếu tài khoản trước đó chưa có
+        if (empty($user->firebase_uid)) {
+            $user->firebase_uid = $this->syncWithFirebaseAdmin($normalizedEmail, $password);
+            if ($user->firebase_uid) {
+                $user->save();
+            }
+        }
 
         $token = $user->createToken('stb_client_token')->plainTextToken;
 
@@ -146,7 +190,7 @@ class AuthService
     }
 
     /**
-     * Khởi tạo đầy đủ hồ sơ (Tourist/Provider), Ví điện tử và Hồ sơ MXH cho người dùng.
+     * Khởi tạo hồ sơ người dùng (Dành cho bước hoàn tất hồ sơ sau này hoặc Seed dữ liệu).
      */
     public function ensureUserEcosystem(User $user, array $extra = []): void
     {
@@ -160,12 +204,23 @@ class AuthService
             ]
         );
 
+        $resolvedName = $extra['name']
+            ?? $extra['displayName']
+            ?? $extra['display_name']
+            ?? explode('@', $user->email)[0]
+            ?? 'User';
+
+        $avatar = $extra['picture']
+            ?? $extra['avatarUrl']
+            ?? $extra['avatar_url']
+            ?? null;
+
         // 2. Khởi tạo Hồ sơ theo Vai trò
         if ($user->role === UserRole::Provider->value) {
             ProviderProfile::firstOrCreate(
                 ['user_id' => $user->id],
                 [
-                    'business_name' => $extra['business_name'] ?? ($user->name . ' Travel'),
+                    'business_name' => $extra['business_name'] ?? ($resolvedName.' Travel'),
                     'business_type' => $extra['business_type'] ?? 'Tour & Lưu trú',
                     'phone' => $extra['phone'] ?? null,
                     'address' => $extra['address'] ?? null,
@@ -177,7 +232,7 @@ class AuthService
             TouristProfile::firstOrCreate(
                 ['user_id' => $user->id],
                 [
-                    'name' => $user->name,
+                    'name' => $resolvedName,
                     'phone_number' => $extra['phone'] ?? null,
                     'nationality' => 'Việt Nam',
                 ]
@@ -185,18 +240,18 @@ class AuthService
         }
 
         // 3. Khởi tạo Hồ sơ Mạng xã hội độc lập
-        if (!$user->socialProfile()->exists()) {
-            $baseUsername = Str::slug($user->name ?: explode('@', $user->email)[0], '');
+        if (! $user->socialProfile()->exists()) {
+            $baseUsername = Str::slug($resolvedName, '');
             if (strlen($baseUsername) < 3) {
                 $baseUsername = 'traveler';
             }
-            $username = substr($baseUsername, 0, 35) . '_' . $user->id;
+            $username = substr($baseUsername, 0, 35).'_'.$user->id;
 
             SocialProfile::create([
                 'user_id' => $user->id,
                 'username' => $username,
-                'display_name' => $user->name,
-                'avatar_url' => $user->avatar_url,
+                'display_name' => $resolvedName,
+                'avatar_url' => $avatar,
                 'bio' => $user->role === UserRole::Provider->value
                     ? 'Đối tác cung cấp trải nghiệm du lịch chính thức trên Social Travel Booking.'
                     : 'Đam mê xê dịch và khám phá vẻ đẹp Việt Nam.',
@@ -212,16 +267,27 @@ class AuthService
     {
         $user->loadMissing(['touristProfile', 'providerProfile', 'socialProfile', 'wallet']);
 
+        $displayName = $user->display_name;
+        $avatarUrl = $user->avatar_url ?? $user->socialProfile?->avatar_url;
+
+        $isProfileCompleted = match ($user->role) {
+            UserRole::Provider->value => ! is_null($user->providerProfile),
+            UserRole::Tourist->value => ! is_null($user->touristProfile),
+            UserRole::Admin->value => true,
+            default => false,
+        };
+
         return [
             'id' => $user->id,
             'firebase_uid' => $user->firebase_uid,
-            'name' => $user->name,
-            'display_name' => $user->name,
+            'name' => $displayName,
+            'display_name' => $displayName,
             'email' => $user->email,
-            'avatar_url' => $user->avatar_url ?? $user->socialProfile?->avatar_url,
+            'avatar_url' => $avatarUrl,
             'role' => $user->role,
             'status' => $user->status,
             'social_active' => (bool) $user->social_active,
+            'is_profile_completed' => $isProfileCompleted,
             'wallet' => $user->wallet ? [
                 'balance' => (float) $user->wallet->balance,
                 'locked_balance' => (float) $user->wallet->locked_balance,

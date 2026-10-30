@@ -3,9 +3,10 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { Loader2 } from "lucide-react";
 import { useAuth } from "../hooks/useAuth";
 import AuthPage from "../features/auth/pages/AuthPage";
+import PlatformUnsupportedPage from "../features/auth/pages/PlatformUnsupportedPage";
+import ProviderOnboardingPage from "../features/provider/pages/ProviderOnboardingPage";
 import AdminDashboardPage from "../features/admin/pages/AdminDashboardPage";
 import ProviderDashboardPage from "../features/provider/pages/ProviderDashboardPage";
-import TouristPreviewPage from "../features/tourist/pages/TouristPreviewPage";
 import Typography from "../components/ui/Typography";
 
 function LoadingScreen() {
@@ -67,6 +68,13 @@ export default function AppRouter() {
           }
         />
 
+        {/* Trang thông báo giới hạn nền tảng 404 cho vai trò chưa hỗ trợ trên Web (ví dụ: Tourist) */}
+        <Route path="/unsupported" element={<PlatformUnsupportedPage />} />
+
+        {/* Trang Khởi tạo / Thiết lập hồ sơ Nhà cung cấp dịch vụ (Onboarding) */}
+        <Route path="/onboarding" element={<ProviderOnboardingPage />} />
+        <Route path="/provider/onboarding" element={<ProviderOnboardingPage />} />
+
         {/* Bảng điều khiển Quản trị viên (Admin) */}
         <Route
           path="/admin/*"
@@ -87,15 +95,8 @@ export default function AppRouter() {
           }
         />
 
-        {/* Không gian Du khách trên Web (Tourist) */}
-        <Route
-          path="/tourist/*"
-          element={
-            <ProtectedRoute allowedRoles={["tourist", "provider", "admin"]}>
-              <TouristPreviewPage />
-            </ProtectedRoute>
-          }
-        />
+        {/* Điều hướng không gian Du khách sang trang Unsupported trên Web */}
+        <Route path="/tourist/*" element={<Navigate to="/unsupported" replace />} />
 
         {/* Điều hướng mặc định */}
         <Route path="*" element={<Navigate to="/auth" replace />} />

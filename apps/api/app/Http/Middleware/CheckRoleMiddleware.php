@@ -18,7 +18,7 @@ class CheckRoleMiddleware
         /** @var User|null $user */
         $user = $request->user() ?? $request->attributes->get('userModel');
 
-        if (!$user) {
+        if (! $user) {
             return response()->json([
                 'success' => false,
                 'message' => 'Tài khoản chưa được đồng bộ trên hệ thống. Vui lòng đăng nhập lại.',
@@ -32,8 +32,8 @@ class CheckRoleMiddleware
             ], 403);
         }
 
-        if (!empty($roles) && !in_array($user->role, $roles, true)) {
-            Log::warning("CheckRoleMiddleware: Người dùng ID [{$user->id}] có vai trò [{$user->role}] bị từ chối truy cập route yêu cầu: " . implode(', ', $roles));
+        if (! empty($roles) && ! in_array($user->role, $roles, true)) {
+            Log::warning("CheckRoleMiddleware: Người dùng ID [{$user->id}] có vai trò [{$user->role}] bị từ chối truy cập route yêu cầu: ".implode(', ', $roles));
 
             return response()->json([
                 'success' => false,

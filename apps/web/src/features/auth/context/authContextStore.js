@@ -10,6 +10,6 @@ export function getDashboardRouteByRole(role) {
       return "/provider/dashboard";
     case "tourist":
     default:
-      return "/tourist/home";
+      return "/unsupported";
   }
 }

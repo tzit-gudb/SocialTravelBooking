@@ -15,12 +15,12 @@ class RegisterRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'name' => ['required', 'string', 'min:2', 'max:100'],
+            'name' => ['nullable', 'string', 'min:2', 'max:100'],
             'email' => ['required', 'string', 'email', 'max:255', 'unique:users,email'],
             'password' => ['required', 'string', 'min:8', 'max:100', 'confirmed'],
-            'role' => ['required', 'string', Rule::in(['tourist', 'provider'])],
+            'role' => ['nullable', 'string', Rule::in(['tourist', 'provider'])],
             'phone' => ['nullable', 'string', 'max:20', 'regex:/^[0-9+\-\s()]{8,20}$/'],
-            'business_name' => ['required_if:role,provider', 'nullable', 'string', 'min:2', 'max:255'],
+            'business_name' => ['nullable', 'string', 'min:2', 'max:255'],
             'business_type' => ['nullable', 'string', 'max:100'],
             'address' => ['nullable', 'string', 'max:500'],
         ];
