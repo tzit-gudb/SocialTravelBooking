@@ -26,7 +26,8 @@ class FirebaseAuthMiddleware
             return $next($request);
         }
 
-        $bearerToken = $request->bearerToken();
+        // Hỗ trợ token từ Authorization Header hoặc query parameter cho media/file stream
+        $bearerToken = $request->bearerToken() ?? $request->query('token');
 
         if (! $bearerToken) {
             return $this->unauthorizedResponse('Vui lòng đăng nhập để tiếp tục.');

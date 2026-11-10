@@ -22,9 +22,13 @@ export default function LicenseFileUploader({ value, onChange, errorMessage }) {
         rawList = [value];
       }
       return rawList
-        .filter((item) => typeof item === "string" && !item.startsWith("blob:"))
+        .map((item) => (typeof item === "string" ? item : item?.url || ""))
+        .filter(
+          (item) => typeof item === "string" && item.trim().length > 0 && !item.startsWith("blob:"),
+        )
         .map((url, idx) => {
-          const isPdf = url.includes(".pdf") || url.startsWith("data:application/pdf");
+          const isPdf =
+            url.toLowerCase().includes(".pdf") || url.startsWith("data:application/pdf");
           return {
             id: `init-${idx}`,
             name: isPdf ? "Giay_phep_kinh_doanh.pdf" : `Giấy phép kinh doanh ${idx + 1}`,
