@@ -19,6 +19,13 @@ class FirebaseAuthMiddleware
      */
     public function handle(Request $request, Closure $next): mixed
     {
+        // Hỗ trợ trường hợp kiểm thử tự động với Sanctum::actingAs() hoặc Auth::login()
+        if ($request->user()) {
+            $request->attributes->set('userModel', $request->user());
+
+            return $next($request);
+        }
+
         $bearerToken = $request->bearerToken();
 
         if (! $bearerToken) {

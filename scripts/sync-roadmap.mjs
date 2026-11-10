@@ -1,46 +1,51 @@
-import fs from 'fs';
-import { execSync } from 'child_process';
+import fs from "fs";
+import { execSync } from "child_process";
 
-const OWNER = 'tranhoangviet05';
-const REPO = 'ProjectManagement';
+const OWNER = "tranhoangviet05";
+const REPO = "ProjectManagement";
 const BASE_URL = `https://api.github.com/repos/${OWNER}/${REPO}`;
 
-const isDryRun = process.argv.includes('--dry-run') || process.env.DRY_RUN === 'true';
+const isDryRun = process.argv.includes("--dry-run") || process.env.DRY_RUN === "true";
 
 // 1. Get Auth Token
 let token = process.env.GITHUB_TOKEN || process.env.GH_TOKEN;
 if (!token) {
   try {
-    token = execSync('gh auth token', { encoding: 'utf-8', stdio: ['pipe', 'pipe', 'ignore'] }).trim();
+    token = execSync("gh auth token", {
+      encoding: "utf-8",
+      stdio: ["pipe", "pipe", "ignore"],
+    }).trim();
   } catch (e) {
     // No gh token
   }
 }
 
 if (!token && !isDryRun) {
-  console.error('Error: GITHUB_TOKEN or gh CLI login is required. Run "gh auth login" or pass GITHUB_TOKEN=...');
+  console.error(
+    'Error: GITHUB_TOKEN or gh CLI login is required. Run "gh auth login" or pass GITHUB_TOKEN=...',
+  );
   process.exit(1);
 }
 
 // 2. HTTP Helper
 async function ghRequest(endpoint, options = {}) {
-  const url = endpoint.startsWith('http') ? endpoint : `${BASE_URL}${endpoint}`;
+  const url = endpoint.startsWith("http") ? endpoint : `${BASE_URL}${endpoint}`;
   const res = await fetch(url, {
     ...options,
     headers: {
-      'Accept': 'application/vnd.github+json',
-      'Authorization': `Bearer ${token}`,
-      'X-GitHub-Api-Version': '2022-11-28',
-      'Content-Type': 'application/json',
-      ...(options.headers || {})
-    }
+      Accept: "application/vnd.github+json",
+      Authorization: `Bearer ${token}`,
+      "X-GitHub-Api-Version": "2022-11-28",
+      "Content-Type": "application/json",
+      ...(options.headers || {}),
+    },
   });
 
-  const contentType = res.headers.get('content-type') || '';
-  const data = contentType.includes('application/json') ? await res.json() : await res.text();
+  const contentType = res.headers.get("content-type") || "";
+  const data = contentType.includes("application/json") ? await res.json() : await res.text();
 
   if (!res.ok) {
-    const errorMsg = typeof data === 'object' ? JSON.stringify(data) : data;
+    const errorMsg = typeof data === "object" ? JSON.stringify(data) : data;
     throw new Error(`GitHub API Error [${res.status}] ${res.statusText}: ${errorMsg}`);
   }
 
@@ -48,9 +53,9 @@ async function ghRequest(endpoint, options = {}) {
 }
 
 // 3. Parse ROADMAP.md
-function parseRoadmap(filePath = 'ROADMAP.md') {
-  const content = fs.readFileSync(filePath, 'utf-8');
-  const lines = content.split('\n');
+function parseRoadmap(filePath = "ROADMAP.md") {
+  const content = fs.readFileSync(filePath, "utf-8");
+  const lines = content.split("\n");
 
   const sprints = [];
   let currentSprint = null;
@@ -64,7 +69,7 @@ function parseRoadmap(filePath = 'ROADMAP.md') {
       currentSprint = {
         num: parseInt(sprintMatch[1]),
         title: `Sprint ${sprintMatch[1]}: ${sprintMatch[2].trim()}`,
-        epics: []
+        epics: [],
       };
       sprints.push(currentSprint);
       currentEpic = null;
@@ -83,7 +88,9 @@ function parseRoadmap(filePath = 'ROADMAP.md') {
       continue;
     }
 
-    const epicMatch = line.match(/^\|\s*\*\*\[EPIC\]\s*(.+?)\*\*\s*\|\s*\*\*(.+?)\*\*\s*\|\s*\*\*(.+?)\*\*\s*\|\s*\*\*(.+?)\*\*\s*\|\s*\*\*(.+?)\*\*\s*\|\s*\*\*(.+?)\*\*\s*\|\s*\*\*(.+?)\*\*\s*\|\s*(.+?)\s*\|\s*(.+?)\s*\|/);
+    const epicMatch = line.match(
+      /^\|\s*\*\*\[EPIC\]\s*(.+?)\*\*\s*\|\s*\*\*(.+?)\*\*\s*\|\s*\*\*(.+?)\*\*\s*\|\s*\*\*(.+?)\*\*\s*\|\s*\*\*(.+?)\*\*\s*\|\s*\*\*(.+?)\*\*\s*\|\s*\*\*(.+?)\*\*\s*\|\s*(.+?)\s*\|\s*(.+?)\s*\|/,
+    );
     if (epicMatch && currentSprint) {
       currentEpic = {
         title: `[EPIC] ${epicMatch[1].trim()}`,
@@ -95,13 +102,15 @@ function parseRoadmap(filePath = 'ROADMAP.md') {
         role: epicMatch[7].trim(),
         startDate: epicMatch[8].trim(),
         targetDate: epicMatch[9].trim(),
-        tasks: []
+        tasks: [],
       };
       currentSprint.epics.push(currentEpic);
       continue;
     }
 
-    const taskMatch = line.match(/^\|\s*↳\s*(.+?)\s*\|\s*(.+?)\s*\|\s*(.+?)\s*\|\s*(.+?)\s*\|\s*(.+?)\s*\|\s*(.+?)\s*\|\s*(.+?)\s*\|\s*(.+?)\s*\|\s*(.+?)\s*\|/);
+    const taskMatch = line.match(
+      /^\|\s*↳\s*(.+?)\s*\|\s*(.+?)\s*\|\s*(.+?)\s*\|\s*(.+?)\s*\|\s*(.+?)\s*\|\s*(.+?)\s*\|\s*(.+?)\s*\|\s*(.+?)\s*\|\s*(.+?)\s*\|/,
+    );
     if (taskMatch && currentEpic) {
       currentEpic.tasks.push({
         title: taskMatch[1].trim(),
@@ -133,22 +142,24 @@ async function main() {
   if (isDryRun) {
     for (const sprint of sprints) {
       console.log(`=== ${sprint.title} (${sprint.time?.start} - ${sprint.time?.end}) ===`);
-      console.log(`Goal: ${sprint.goal || 'N/A'}`);
+      console.log(`Goal: ${sprint.goal || "N/A"}`);
       for (const epic of sprint.epics) {
         console.log(` ${epic.title} [Priority: ${epic.priority} | Est: ${epic.estimate} pts]`);
         for (const task of epic.tasks) {
-          console.log(`     ↳ Task: ${task.title} [Platform: ${task.platform} | Module: ${task.module} | Priority: ${task.priority}]`);
+          console.log(
+            `     ↳ Task: ${task.title} [Platform: ${task.platform} | Module: ${task.module} | Priority: ${task.priority}]`,
+          );
         }
       }
-      console.log('');
+      console.log("");
     }
     console.log(`[DRY-RUN] Hoàn tất mô phỏng.`);
     return;
   }
 
   // A. Fetch existing Milestones
-  console.log('Kiểm tra Milestones (Sprints) hiện có...');
-  const existingMilestones = await ghRequest('/milestones?state=all&per_page=100');
+  console.log("Kiểm tra Milestones (Sprints) hiện có...");
+  const existingMilestones = await ghRequest("/milestones?state=all&per_page=100");
   const milestoneMap = new Map();
   for (const m of existingMilestones) {
     milestoneMap.set(m.title, m.number);
@@ -159,17 +170,17 @@ async function main() {
     if (!milestoneMap.has(sprint.title)) {
       console.log(`Đang tạo Milestone: "${sprint.title}"...`);
       // Year 2026 based on project context
-      const [endDay, endMonth] = (sprint.time?.end || '01/11').split('/');
-      const dueOn = `2026-${endMonth.padStart(2, '0')}-${endDay.padStart(2, '0')}T23:59:59Z`;
+      const [endDay, endMonth] = (sprint.time?.end || "01/11").split("/");
+      const dueOn = `2026-${endMonth.padStart(2, "0")}-${endDay.padStart(2, "0")}T23:59:59Z`;
 
-      const newM = await ghRequest('/milestones', {
-        method: 'POST',
+      const newM = await ghRequest("/milestones", {
+        method: "POST",
         body: JSON.stringify({
           title: sprint.title,
-          description: sprint.goal ? `Mục tiêu Sprint: ${sprint.goal}` : '',
+          description: sprint.goal ? `Mục tiêu Sprint: ${sprint.goal}` : "",
           due_on: dueOn,
-          state: 'open'
-        })
+          state: "open",
+        }),
       });
       milestoneMap.set(sprint.title, newM.number);
     } else {
@@ -178,35 +189,35 @@ async function main() {
   }
 
   // B. Setup Labels
-  console.log('\nKiểm tra & Khởi tạo Labels...');
+  console.log("\nKiểm tra & Khởi tạo Labels...");
   const standardLabels = [
-    { name: 'type: epic', color: '5319E7', description: 'Epic bao quát các subtasks' },
-    { name: 'type: task', color: '1D76DB', description: 'Task cụ thể trong Sprint' },
-    { name: 'P0: Critical', color: 'B60205', description: 'Ưu tiên khẩn cấp' },
-    { name: 'P1: High', color: 'D93F0B', description: 'Ưu tiên cao' },
-    { name: 'P2: Normal', color: 'FBCA04', description: 'Ưu tiên bình thường' },
-    { name: 'P3: Nice-to-have', color: '0E8A16', description: 'Tính năng bổ sung' },
-    { name: 'module: Auth', color: '0075CA', description: 'Module Xác thực & Tài khoản' },
-    { name: 'module: Booking', color: '0052CC', description: 'Module Đặt chỗ & Lịch trình' },
-    { name: 'module: Payment', color: '0E8A16', description: 'Module Cổng thanh toán & Ví' },
-    { name: 'module: Social', color: 'E99695', description: 'Module Mạng xã hội du lịch' },
-    { name: 'module: Admin', color: 'BFDADC', description: 'Module Quản trị hệ thống' },
-    { name: 'module: DevOps', color: 'BFD4F2', description: 'Module Hạ tầng & CI/CD' },
-    { name: 'platform: API', color: 'C5DEF5', description: 'Laravel Backend API' },
-    { name: 'platform: Web', color: 'D4C5F9', description: 'Frontend React / Next Web' },
-    { name: 'platform: Mobile', color: 'BFDADC', description: 'React Native / Expo Mobile' },
-    { name: 'platform: All', color: 'FEF2C0', description: 'Toàn bộ nền tảng' }
+    { name: "type: epic", color: "5319E7", description: "Epic bao quát các subtasks" },
+    { name: "type: task", color: "1D76DB", description: "Task cụ thể trong Sprint" },
+    { name: "P0: Critical", color: "B60205", description: "Ưu tiên khẩn cấp" },
+    { name: "P1: High", color: "D93F0B", description: "Ưu tiên cao" },
+    { name: "P2: Normal", color: "FBCA04", description: "Ưu tiên bình thường" },
+    { name: "P3: Nice-to-have", color: "0E8A16", description: "Tính năng bổ sung" },
+    { name: "module: Auth", color: "0075CA", description: "Module Xác thực & Tài khoản" },
+    { name: "module: Booking", color: "0052CC", description: "Module Đặt chỗ & Lịch trình" },
+    { name: "module: Payment", color: "0E8A16", description: "Module Cổng thanh toán & Ví" },
+    { name: "module: Social", color: "E99695", description: "Module Mạng xã hội du lịch" },
+    { name: "module: Admin", color: "BFDADC", description: "Module Quản trị hệ thống" },
+    { name: "module: DevOps", color: "BFD4F2", description: "Module Hạ tầng & CI/CD" },
+    { name: "platform: API", color: "C5DEF5", description: "Laravel Backend API" },
+    { name: "platform: Web", color: "D4C5F9", description: "Frontend React / Next Web" },
+    { name: "platform: Mobile", color: "BFDADC", description: "React Native / Expo Mobile" },
+    { name: "platform: All", color: "FEF2C0", description: "Toàn bộ nền tảng" },
   ];
 
-  const existingLabels = await ghRequest('/labels?per_page=100');
-  const existingLabelNames = new Set(existingLabels.map(l => l.name.toLowerCase()));
+  const existingLabels = await ghRequest("/labels?per_page=100");
+  const existingLabelNames = new Set(existingLabels.map((l) => l.name.toLowerCase()));
 
   for (const label of standardLabels) {
     if (!existingLabelNames.has(label.name.toLowerCase())) {
       try {
-        await ghRequest('/labels', {
-          method: 'POST',
-          body: JSON.stringify(label)
+        await ghRequest("/labels", {
+          method: "POST",
+          body: JSON.stringify(label),
         });
         console.log(`Tạo label: ${label.name}`);
       } catch (err) {
@@ -216,8 +227,8 @@ async function main() {
   }
 
   // C. Fetch existing Issues to avoid duplicates
-  console.log('\nKiểm tra Issues hiện có...');
-  const existingIssues = await ghRequest('/issues?state=all&per_page=100');
+  console.log("\nKiểm tra Issues hiện có...");
+  const existingIssues = await ghRequest("/issues?state=all&per_page=100");
   const issueMap = new Map();
   for (const iss of existingIssues) {
     issueMap.set(iss.title.trim().toLowerCase(), iss);
@@ -233,16 +244,20 @@ async function main() {
 
       if (!epicIssue) {
         const epicBody = `## Mục tiêu Epic\n${epic.title} thuộc **${sprint.title}**.\n\n### Danh sách Task triển khai\n`;
-        const epicLabels = ['type: epic', `${epic.priority}: Critical`, `module: ${epic.module}`].filter(Boolean);
+        const epicLabels = [
+          "type: epic",
+          `${epic.priority}: Critical`,
+          `module: ${epic.module}`,
+        ].filter(Boolean);
 
-        epicIssue = await ghRequest('/issues', {
-          method: 'POST',
+        epicIssue = await ghRequest("/issues", {
+          method: "POST",
           body: JSON.stringify({
             title: epic.title,
             body: epicBody,
             milestone: milestoneNumber,
-            labels: epicLabels
-          })
+            labels: epicLabels,
+          }),
         });
         console.log(`  Đã tạo Epic Issue #${epicIssue.number}: "${epic.title}"`);
         issueMap.set(epic.title.toLowerCase(), epicIssue);
@@ -256,7 +271,8 @@ async function main() {
         let taskIssue = issueMap.get(task.title.toLowerCase());
 
         if (!taskIssue) {
-          const taskBody = `### Mô tả Task\nTask nằm trong Epic: #${epicIssue.number} (${epic.title})\n\n` +
+          const taskBody =
+            `### Mô tả Task\nTask nằm trong Epic: #${epicIssue.number} (${epic.title})\n\n` +
             `* **Sprint:** ${sprint.title}\n` +
             `* **Platform:** ${task.platform}\n` +
             `* **Module:** ${task.module}\n` +
@@ -265,20 +281,20 @@ async function main() {
             `* **Dự kiến hoàn thành:** ${task.startDate} -> ${task.targetDate}\n`;
 
           const taskLabels = [
-            'type: task',
-            `${task.priority}: ${task.priority === 'P0' ? 'Critical' : task.priority === 'P1' ? 'High' : 'Normal'}`,
+            "type: task",
+            `${task.priority}: ${task.priority === "P0" ? "Critical" : task.priority === "P1" ? "High" : "Normal"}`,
             `module: ${task.module}`,
-            `platform: ${task.platform}`
+            `platform: ${task.platform}`,
           ].filter(Boolean);
 
-          taskIssue = await ghRequest('/issues', {
-            method: 'POST',
+          taskIssue = await ghRequest("/issues", {
+            method: "POST",
             body: JSON.stringify({
               title: task.title,
               body: taskBody,
               milestone: milestoneNumber,
-              labels: taskLabels
-            })
+              labels: taskLabels,
+            }),
           });
           console.log(`    ↳ Tạo Task Issue #${taskIssue.number}: "${task.title}"`);
           issueMap.set(task.title.toLowerCase(), taskIssue);
@@ -286,25 +302,29 @@ async function main() {
           console.log(`    ↳ Task Issue #${taskIssue.number} đã tồn tại.`);
         }
 
-        taskChecklist.push(`- [ ] #${taskIssue.number} ${task.title} (Est: ${task.estimate} pts, ${task.platform})`);
+        taskChecklist.push(
+          `- [ ] #${taskIssue.number} ${task.title} (Est: ${task.estimate} pts, ${task.platform})`,
+        );
       }
 
       // Update Epic Issue Body with Task Checklist
       if (taskChecklist.length > 0) {
-        const updatedBody = `## Mục tiêu Epic\n${epic.title} thuộc **${sprint.title}**.\n\n### 📋 Danh sách Task triển khai\n${taskChecklist.join('\n')}\n`;
+        const updatedBody = `## Mục tiêu Epic\n${epic.title} thuộc **${sprint.title}**.\n\n### 📋 Danh sách Task triển khai\n${taskChecklist.join("\n")}\n`;
         await ghRequest(`/issues/${epicIssue.number}`, {
-          method: 'PATCH',
-          body: JSON.stringify({ body: updatedBody })
+          method: "PATCH",
+          body: JSON.stringify({ body: updatedBody }),
         });
-        console.log(`  Đã liên kết ${taskChecklist.length} sub-tasks vào Epic Issue #${epicIssue.number}`);
+        console.log(
+          `  Đã liên kết ${taskChecklist.length} sub-tasks vào Epic Issue #${epicIssue.number}`,
+        );
       }
     }
   }
 
-  console.log('\n ĐỒNG BỘ THÀNH CÔNG TOÀN BỘ SPRINT, EPIC VÀ TASK LÊN GITHUB!');
+  console.log("\n ĐỒNG BỘ THÀNH CÔNG TOÀN BỘ SPRINT, EPIC VÀ TASK LÊN GITHUB!");
 }
 
-main().catch(err => {
-  console.error('\n Có lỗi xảy ra trong quá trình đồng bộ:', err.message);
+main().catch((err) => {
+  console.error("\n Có lỗi xảy ra trong quá trình đồng bộ:", err.message);
   process.exit(1);
 });

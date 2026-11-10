@@ -102,13 +102,25 @@ export interface TouristProfile {
   id_card_number?: string;
 }
 
+export interface BusinessType {
+  id: string;
+  type: string; // Phân loại lớn: 'giải trí', 'chỗ ở', 'phương tiện'...
+  name: string; // Tên chi tiết: 'Khách sạn', 'Resort', 'Chỗ ở nhà dân', 'Tour ẩm thực', 'Tour tham quan'...
+  slug: string;
+  created_at?: string;
+  updated_at?: string;
+}
+
 export interface ProviderProfile {
   id: string;
   user_id: string;
   business_name: string;
-  business_type?: string;
-  address?: string;
+  representative_name?: string;
+  business_type_id?: string;
+  business_type?: BusinessType;
   phone?: string;
+  address?: string;
+  business_license_url?: string;
   description?: string;
   status: ProviderStatus;
 }
@@ -153,6 +165,8 @@ export interface Service {
   provider_id: string;
   provider?: ProviderProfile;
   category_id?: string;
+  business_type_id?: string;
+  business_type?: BusinessType;
   location_id?: string;
   name: string;
   slug: string;

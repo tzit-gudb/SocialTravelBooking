@@ -110,12 +110,20 @@ async function request(endpoint, options = {}) {
 
   const bearerToken = await resolveBearerToken(token);
 
+  const isFormData = typeof FormData !== "undefined" && body instanceof FormData;
+
   const requestHeaders = {
     Accept: "application/json",
-    "Content-Type": "application/json",
     "X-Platform": "web",
     ...headers,
   };
+
+  if (!isFormData && !headers["Content-Type"]) {
+    requestHeaders["Content-Type"] = "application/json";
+  } else if (isFormData) {
+    // Trình duyệt tự thiết lập boundary multipart/form-data
+    delete requestHeaders["Content-Type"];
+  }
 
   if (bearerToken) {
     requestHeaders.Authorization = `Bearer ${bearerToken}`;
@@ -130,13 +138,11 @@ async function request(endpoint, options = {}) {
     response = await fetch(url, {
       method,
       headers: requestHeaders,
-      body: body ? JSON.stringify(body) : undefined,
+      body: isFormData ? body : body ? JSON.stringify(body) : undefined,
     });
   } catch (netErr) {
-    // In log kỹ thuật ra console/terminal cho lập trình viên
     console.error(`[API Network Error] ${method} ${url}:`, netErr);
 
-    // Giao diện chỉ nhận lý do thân thiện, không chứa URL hay cổng
     const netError = new Error(
       "Không thể kết nối đến máy chủ. Vui lòng kiểm tra lại kết nối mạng.",
     );
@@ -153,10 +159,8 @@ async function request(endpoint, options = {}) {
   }
 
   if (!response.ok) {
-    // In log chi tiết endpoint, HTTP status và payload đầy đủ cho lập trình viên
     console.error(`[API Error] ${method} ${url} [HTTP ${response.status}]:`, payload);
 
-    // Giao diện người dùng chỉ nhận lý do lỗi thực tế
     const friendlyReason = resolveFriendlyErrorMessage(response.status, payload);
     const apiError = new Error(friendlyReason);
     apiError.status = response.status;

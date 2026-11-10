@@ -1,13 +1,32 @@
 import React from "react";
-import { Clock, CheckCircle2, ArrowRight, ShieldCheck } from "lucide-react";
+import { Clock, CheckCircle2, ArrowRight, ShieldCheck, FileCheck } from "lucide-react";
 import Typography from "../../../components/ui/Typography";
+import { getBusinessTypeName } from "../models/providerOnboardingModel";
 
 /**
  * Trạng thái hiển thị sau khi hoàn tất gửi hồ sơ (Bước 3: Chờ xác nhận)
+ * Hiển thị tóm tắt hồ sơ bao gồm Tên đơn vị, Người đại diện và tệp giấy phép đã đính kèm.
  */
 export default function OnboardingSuccessState({ formData, submissionInfo, onBackToAuth }) {
   const referenceCode = submissionInfo?.referenceCode || "STB-PRV-202688";
   const submittedAt = submissionInfo?.submittedAt || "Hôm nay";
+  const businessTypeName = getBusinessTypeName(formData.business_type_id);
+
+  const getAttachmentLabel = () => {
+    const val = formData.business_license_url || "";
+    if (val.includes(".pdf") || val.includes("data:application/pdf")) {
+      return "Đã đính kèm 1 tài liệu PDF giấy phép kinh doanh";
+    }
+    if (val.startsWith("[") && val.endsWith("]")) {
+      try {
+        const count = JSON.parse(val).length;
+        return `Đã đính kèm ${count} ảnh giấy phép kinh doanh`;
+      } catch {
+        return "Đã đính kèm ảnh giấy phép kinh doanh";
+      }
+    }
+    return "Đã đính kèm 1 ảnh giấy phép kinh doanh";
+  };
 
   return (
     <div className="w-full max-w-xl mx-auto text-center py-4">
@@ -32,7 +51,7 @@ export default function OnboardingSuccessState({ formData, submissionInfo, onBac
       </p>
 
       {/* Khối tóm tắt thông tin hồ sơ đã nộp */}
-      <div className="bg-surface-muted/50 rounded-xl border border-border-subtle p-6 text-left mb-8 space-y-3.5">
+      <div className="bg-surface-muted/50 rounded-xl border border-border-subtle p-6 text-left mb-8 space-y-4">
         <div className="flex items-center justify-between pb-3 border-b border-border-subtle">
           <span className="text-xs uppercase tracking-wider text-ink-subtle font-semibold">
             Mã hồ sơ thẩm định
@@ -44,30 +63,56 @@ export default function OnboardingSuccessState({ formData, submissionInfo, onBac
 
         <div className="grid grid-cols-2 gap-3 text-sm">
           <div>
-            <span className="text-xs text-ink-subtle block mb-0.5">Tên đơn vị:</span>
-            <span className="font-medium text-ink-primary truncate block">
-              {formData.businessName || "Chưa cập nhật"}
+            <span className="text-xs text-ink-subtle block mb-0.5">Tên cơ sở / Doanh nghiệp:</span>
+            <span className="font-semibold text-ink-primary truncate block">
+              {formData.business_name || "Chưa cập nhật"}
             </span>
           </div>
 
           <div>
-            <span className="text-xs text-ink-subtle block mb-0.5">Loại hình dịch vụ:</span>
-            <span className="font-medium text-ink-primary truncate block">
-              {formData.businessType || "Tour & Du lịch"}
+            <span className="text-xs text-ink-subtle block mb-0.5">Người đại diện / Quản lý:</span>
+            <span className="font-semibold text-ink-primary truncate block">
+              {formData.representative_name || "Chưa cập nhật"}
             </span>
           </div>
 
           <div>
-            <span className="text-xs text-ink-subtle block mb-0.5">Người đại diện:</span>
-            <span className="font-medium text-ink-primary truncate block">
-              {formData.representativeName || "Chưa cập nhật"}
+            <span className="text-xs text-ink-subtle block mb-0.5">Loại hình kinh doanh:</span>
+            <span className="font-semibold text-ink-primary truncate block">
+              {businessTypeName}
+            </span>
+          </div>
+
+          <div>
+            <span className="text-xs text-ink-subtle block mb-0.5">Hotline CSKH:</span>
+            <span className="font-semibold text-ink-primary truncate block">
+              {formData.phone || "Chưa cập nhật"}
             </span>
           </div>
 
           <div>
             <span className="text-xs text-ink-subtle block mb-0.5">Thời gian gửi:</span>
-            <span className="font-medium text-ink-primary block">{submittedAt}</span>
+            <span className="font-semibold text-ink-primary block">{submittedAt}</span>
           </div>
+
+          {formData.address && (
+            <div className="col-span-2">
+              <span className="text-xs text-ink-subtle block mb-0.5">Địa chỉ cơ sở:</span>
+              <span className="text-ink-primary block text-xs sm:text-sm">{formData.address}</span>
+            </div>
+          )}
+
+          {formData.business_license_url && (
+            <div className="col-span-2 pt-1">
+              <span className="text-xs text-ink-subtle block mb-1">
+                Hồ sơ giấy phép kinh doanh:
+              </span>
+              <div className="flex items-center gap-2 text-xs text-emerald-700 bg-emerald-50 px-2.5 py-1.5 rounded-lg border border-emerald-200 w-fit">
+                <FileCheck className="w-4 h-4 text-emerald-600 shrink-0" />
+                <span className="font-medium">{getAttachmentLabel()}</span>
+              </div>
+            </div>
+          )}
         </div>
 
         <div className="pt-3 border-t border-border-subtle flex items-center gap-2 text-xs text-amber-700 bg-amber-50/80 p-2.5 rounded-lg border border-amber-200">

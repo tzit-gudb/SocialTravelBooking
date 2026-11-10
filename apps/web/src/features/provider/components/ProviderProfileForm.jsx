@@ -1,29 +1,12 @@
 import React from "react";
-import { Loader2, Building2, Phone, MapPin, Briefcase, FileText, User } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import Typography from "../../../components/ui/Typography";
-
-const BUSINESS_TYPES = [
-  "Tour du lịch & Trải nghiệm biển đảo",
-  "Khách sạn, Resort & Nghỉ dưỡng",
-  "Homestay & Villa ven biển",
-  "Vận chuyển du lịch & Cano cao tốc",
-  "Nhà hàng & Ẩm thực bản địa",
-];
-
-const MAJOR_CITIES = [
-  "Đà Nẵng",
-  "Quảng Ninh (Hạ Long)",
-  "Kiên Giang (Phú Quốc)",
-  "Khánh Hòa (Nha Trang)",
-  "Lâm Đồng (Đà Lạt)",
-  "Bình Thuận (Mũi Né)",
-  "Thành phố Hồ Chí Minh",
-  "Hà Nội",
-  "Tỉnh thành khác",
-];
+import { BUSINESS_TYPES } from "../models/providerOnboardingModel";
+import LicenseFileUploader from "./LicenseFileUploader";
 
 /**
- * Biểu mẫu Khởi tạo hồ sơ Nhà cung cấp dịch vụ du lịch (Onboarding)
+ * Biểu mẫu Khởi tạo hồ sơ Nhà cung cấp dịch vụ (Onboarding)
+ * Bao gồm thông tin doanh nghiệp, tên người đại diện, và bộ upload giấy phép kinh doanh (tối đa 5 ảnh hoặc 1 file PDF).
  */
 export default function ProviderProfileForm({
   formData,
@@ -41,192 +24,171 @@ export default function ProviderProfileForm({
   return (
     <form onSubmit={onSubmit} className="space-y-6" noValidate>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-        {/* Tên thương hiệu / Doanh nghiệp */}
-        <div className="md:col-span-2">
+        {/* Tên thương mại công ty / Cơ sở (business_name) */}
+        <div>
           <label
             htmlFor="onboarding-business-name"
-            className="block text-sm font-semibold text-ink-primary mb-2"
+            className="block text-sm font-semibold text-ink-primary mb-1.5"
           >
-            Tên thương hiệu / Doanh nghiệp du lịch <span className="text-status-danger">*</span>
+            Tên thương mại công ty / Cơ sở <span className="text-status-danger">*</span>
           </label>
-          <div className="relative">
-            <input
-              id="onboarding-business-name"
-              type="text"
-              value={formData.businessName}
-              onChange={(e) => handleChange("businessName", e.target.value)}
-              placeholder="Ví dụ: Sơn Trà Eco Travel, Du thuyền Paradise Hạ Long..."
-              className={`w-full px-4 py-3 pl-11 rounded-lg border text-base transition-colors outline-hidden focus:ring-2 focus:ring-brand-primary/20 ${
-                fieldErrors.businessName
-                  ? "border-status-danger bg-rose-50/30"
-                  : "border-border-subtle bg-surface-elevated focus:border-brand-primary"
-              }`}
-            />
-            <Building2 className="w-5 h-5 text-ink-subtle absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
-          </div>
-          {fieldErrors.businessName && (
-            <Typography variant="caption" className="text-status-danger mt-1.5 block">
-              {fieldErrors.businessName}
+          <input
+            id="onboarding-business-name"
+            type="text"
+            value={formData.business_name}
+            onChange={(e) => handleChange("business_name", e.target.value)}
+            placeholder="Ví dụ: Sơn Trà Eco Travel, Khách sạn Biển Vàng..."
+            className={`w-full px-3.5 py-2.5 rounded-lg border text-base transition-colors outline-hidden focus:ring-2 focus:ring-brand-primary/20 ${
+              fieldErrors.business_name
+                ? "border-status-danger bg-rose-50/30"
+                : "border-border-subtle bg-surface-elevated focus:border-brand-primary"
+            }`}
+          />
+          {fieldErrors.business_name && (
+            <Typography variant="caption" className="text-status-danger mt-1 block">
+              {fieldErrors.business_name}
             </Typography>
           )}
         </div>
 
-        {/* Loại hình dịch vụ */}
+        {/* Họ tên người đại diện / Quản lý (representative_name) */}
+        <div>
+          <label
+            htmlFor="onboarding-representative-name"
+            className="block text-sm font-semibold text-ink-primary mb-1.5"
+          >
+            Tên người đại diện / Quản lý <span className="text-status-danger">*</span>
+          </label>
+          <input
+            id="onboarding-representative-name"
+            type="text"
+            value={formData.representative_name}
+            onChange={(e) => handleChange("representative_name", e.target.value)}
+            placeholder="Ví dụ: Nguyễn Văn An"
+            className={`w-full px-3.5 py-2.5 rounded-lg border text-base transition-colors outline-hidden focus:ring-2 focus:ring-brand-primary/20 ${
+              fieldErrors.representative_name
+                ? "border-status-danger bg-rose-50/30"
+                : "border-border-subtle bg-surface-elevated focus:border-brand-primary"
+            }`}
+          />
+          {fieldErrors.representative_name && (
+            <Typography variant="caption" className="text-status-danger mt-1 block">
+              {fieldErrors.representative_name}
+            </Typography>
+          )}
+        </div>
+
+        {/* Loại hình kinh doanh chính (business_type_id) */}
         <div>
           <label
             htmlFor="onboarding-business-type"
-            className="block text-sm font-semibold text-ink-primary mb-2"
+            className="block text-sm font-semibold text-ink-primary mb-1.5"
           >
-            Loại hình dịch vụ chính <span className="text-status-danger">*</span>
+            Loại hình kinh doanh chính <span className="text-status-danger">*</span>
           </label>
-          <div className="relative">
-            <select
-              id="onboarding-business-type"
-              value={formData.businessType}
-              onChange={(e) => handleChange("businessType", e.target.value)}
-              className="w-full px-4 py-3 pl-11 rounded-lg border border-border-subtle bg-surface-elevated text-base text-ink-primary outline-hidden focus:border-brand-primary focus:ring-2 focus:ring-brand-primary/20 transition-colors cursor-pointer appearance-none"
-            >
-              {BUSINESS_TYPES.map((type) => (
-                <option key={type} value={type}>
-                  {type}
-                </option>
-              ))}
-            </select>
-            <Briefcase className="w-5 h-5 text-ink-subtle absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
-          </div>
+          <select
+            id="onboarding-business-type"
+            value={formData.business_type_id}
+            onChange={(e) => handleChange("business_type_id", e.target.value)}
+            className={`w-full px-3.5 py-2.5 rounded-lg border bg-surface-elevated text-base text-ink-primary outline-hidden focus:border-brand-primary focus:ring-2 focus:ring-brand-primary/20 transition-colors cursor-pointer ${
+              fieldErrors.business_type_id ? "border-status-danger" : "border-border-subtle"
+            }`}
+          >
+            {BUSINESS_TYPES.map((type) => (
+              <option key={type.id} value={type.id}>
+                {type.name} ({type.group})
+              </option>
+            ))}
+          </select>
+          {fieldErrors.business_type_id && (
+            <Typography variant="caption" className="text-status-danger mt-1 block">
+              {fieldErrors.business_type_id}
+            </Typography>
+          )}
         </div>
 
-        {/* Số điện thoại / Hotline */}
+        {/* Số điện thoại / Hotline CSKH (phone) */}
         <div>
           <label
             htmlFor="onboarding-phone"
-            className="block text-sm font-semibold text-ink-primary mb-2"
+            className="block text-sm font-semibold text-ink-primary mb-1.5"
           >
-            Số điện thoại / Hotline CSKH <span className="text-status-danger">*</span>
+            Số điện thoại / Hotline hỗ trợ <span className="text-status-danger">*</span>
           </label>
-          <div className="relative">
-            <input
-              id="onboarding-phone"
-              type="tel"
-              value={formData.phone}
-              onChange={(e) => handleChange("phone", e.target.value)}
-              placeholder="0912 345 678"
-              className={`w-full px-4 py-3 pl-11 rounded-lg border text-base transition-colors outline-hidden focus:ring-2 focus:ring-brand-primary/20 ${
-                fieldErrors.phone
-                  ? "border-status-danger bg-rose-50/30"
-                  : "border-border-subtle bg-surface-elevated focus:border-brand-primary"
-              }`}
-            />
-            <Phone className="w-5 h-5 text-ink-subtle absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
-          </div>
+          <input
+            id="onboarding-phone"
+            type="tel"
+            value={formData.phone}
+            onChange={(e) => handleChange("phone", e.target.value)}
+            placeholder="Ví dụ: 0912345678 hoặc 02363892892"
+            className={`w-full px-3.5 py-2.5 rounded-lg border text-base transition-colors outline-hidden focus:ring-2 focus:ring-brand-primary/20 ${
+              fieldErrors.phone
+                ? "border-status-danger bg-rose-50/30"
+                : "border-border-subtle bg-surface-elevated focus:border-brand-primary"
+            }`}
+          />
           {fieldErrors.phone && (
-            <Typography variant="caption" className="text-status-danger mt-1.5 block">
+            <Typography variant="caption" className="text-status-danger mt-1 block">
               {fieldErrors.phone}
             </Typography>
           )}
         </div>
 
-        {/* Tỉnh / Thành phố hoạt động chính */}
-        <div>
-          <label
-            htmlFor="onboarding-city"
-            className="block text-sm font-semibold text-ink-primary mb-2"
-          >
-            Địa bàn hoạt động chính <span className="text-status-danger">*</span>
-          </label>
-          <div className="relative">
-            <select
-              id="onboarding-city"
-              value={formData.city}
-              onChange={(e) => handleChange("city", e.target.value)}
-              className="w-full px-4 py-3 pl-11 rounded-lg border border-border-subtle bg-surface-elevated text-base text-ink-primary outline-hidden focus:border-brand-primary focus:ring-2 focus:ring-brand-primary/20 transition-colors cursor-pointer appearance-none"
-            >
-              {MAJOR_CITIES.map((c) => (
-                <option key={c} value={c}>
-                  {c}
-                </option>
-              ))}
-            </select>
-            <MapPin className="w-5 h-5 text-ink-subtle absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
-          </div>
-        </div>
-
-        {/* Người đại diện / Quản lý */}
-        <div>
-          <label
-            htmlFor="onboarding-representative"
-            className="block text-sm font-semibold text-ink-primary mb-2"
-          >
-            Họ tên người đại diện / Quản lý <span className="text-status-danger">*</span>
-          </label>
-          <div className="relative">
-            <input
-              id="onboarding-representative"
-              type="text"
-              value={formData.representativeName}
-              onChange={(e) => handleChange("representativeName", e.target.value)}
-              placeholder="Nguyễn Văn An"
-              className={`w-full px-4 py-3 pl-11 rounded-lg border text-base transition-colors outline-hidden focus:ring-2 focus:ring-brand-primary/20 ${
-                fieldErrors.representativeName
-                  ? "border-status-danger bg-rose-50/30"
-                  : "border-border-subtle bg-surface-elevated focus:border-brand-primary"
-              }`}
-            />
-            <User className="w-5 h-5 text-ink-subtle absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
-          </div>
-          {fieldErrors.representativeName && (
-            <Typography variant="caption" className="text-status-danger mt-1.5 block">
-              {fieldErrors.representativeName}
-            </Typography>
-          )}
-        </div>
-
-        {/* Địa chỉ trụ sở */}
+        {/* Địa chỉ văn phòng / Cơ sở kinh doanh (address) */}
         <div className="md:col-span-2">
           <label
             htmlFor="onboarding-address"
-            className="block text-sm font-semibold text-ink-primary mb-2"
+            className="block text-sm font-semibold text-ink-primary mb-1.5"
           >
-            Địa chỉ văn phòng / Điểm tập kết đón khách
+            Địa chỉ văn phòng / Cơ sở kinh doanh
           </label>
           <input
             id="onboarding-address"
             type="text"
             value={formData.address}
             onChange={(e) => handleChange("address", e.target.value)}
-            placeholder="Số 120 Võ Nguyên Giáp, Phước Mỹ, Sơn Trà, Đà Nẵng"
-            className="w-full px-4 py-3 rounded-lg border border-border-subtle bg-surface-elevated text-base outline-hidden focus:border-brand-primary focus:ring-2 focus:ring-brand-primary/20 transition-colors"
+            placeholder="Số nhà, tên đường, phường/xã, quận/huyện, tỉnh/thành phố"
+            className="w-full px-3.5 py-2.5 rounded-lg border border-border-subtle bg-surface-elevated text-base outline-hidden focus:border-brand-primary focus:ring-2 focus:ring-brand-primary/20 transition-colors"
           />
         </div>
 
-        {/* Mã số thuế / GPKD */}
+        {/* Giới thiệu / Mô tả doanh nghiệp (description) */}
         <div className="md:col-span-2">
           <label
-            htmlFor="onboarding-tax"
-            className="block text-sm font-semibold text-ink-primary mb-2"
+            htmlFor="onboarding-description"
+            className="block text-sm font-semibold text-ink-primary mb-1.5"
           >
-            Mã số thuế / Giấy phép kinh doanh lữ hành (nếu có)
+            Giới thiệu doanh nghiệp
           </label>
-          <div className="relative">
-            <input
-              id="onboarding-tax"
-              type="text"
-              value={formData.taxNumber}
-              onChange={(e) => handleChange("taxNumber", e.target.value)}
-              placeholder="0401892831"
-              className="w-full px-4 py-3 pl-11 rounded-lg border border-border-subtle bg-surface-elevated text-base outline-hidden focus:border-brand-primary focus:ring-2 focus:ring-brand-primary/20 transition-colors"
-            />
-            <FileText className="w-5 h-5 text-ink-subtle absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
-          </div>
-          <span className="text-xs text-ink-subtle mt-1.5 block">
-            Cung cấp mã số thuế sẽ giúp hồ sơ đối tác được ưu tiên gắn huy hiệu Xác thực nhanh chóng
-            hơn.
-          </span>
+          <textarea
+            id="onboarding-description"
+            rows={3}
+            value={formData.description}
+            onChange={(e) => handleChange("description", e.target.value)}
+            placeholder="Mô tả tóm tắt về năng lực phục vụ, trải nghiệm nổi bật, chính sách đón tiếp..."
+            className="w-full px-3.5 py-2.5 rounded-lg border border-border-subtle bg-surface-elevated text-base outline-hidden focus:border-brand-primary focus:ring-2 focus:ring-brand-primary/20 transition-colors resize-y"
+          />
+        </div>
+
+        {/* Bộ tải lên & xem trước Giấy phép kinh doanh (Tối đa 5 ảnh HOẶC 1 file PDF) */}
+        <div className="md:col-span-2">
+          <LicenseFileUploader
+            value={formData.business_license_url}
+            onChange={(urls, rawFiles) => {
+              setFormData((prev) => ({
+                ...prev,
+                business_license_url: urls,
+                license_files: rawFiles || [],
+              }));
+              onResetFeedback?.();
+            }}
+            errorMessage={fieldErrors.business_license_url}
+          />
         </div>
       </div>
 
-      {/* Nút Hoàn thành */}
-      <div className="pt-4">
+      {/* Nút Hoàn thành gửi hồ sơ */}
+      <div className="pt-2">
         <button
           type="submit"
           disabled={isSubmitting}
@@ -238,7 +200,7 @@ export default function ProviderProfileForm({
               <span>Đang lưu thông tin hồ sơ...</span>
             </>
           ) : (
-            <span>Hoàn thành</span>
+            <span>Hoàn thành hồ sơ</span>
           )}
         </button>
       </div>

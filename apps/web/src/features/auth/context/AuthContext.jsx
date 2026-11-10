@@ -58,7 +58,7 @@ export function AuthProvider({ children }) {
       return {
         success: true,
         user: response.data,
-        redirectTo: getDashboardRouteByRole(response.data?.role),
+        redirectTo: getDashboardRouteByRole(response.data?.role, response.data),
       };
     } catch (error) {
       return {
@@ -79,7 +79,7 @@ export function AuthProvider({ children }) {
       return {
         success: true,
         user: response.data,
-        redirectTo: getDashboardRouteByRole(response.data?.role),
+        redirectTo: getDashboardRouteByRole(response.data?.role, response.data),
       };
     } catch (error) {
       return {
@@ -100,7 +100,7 @@ export function AuthProvider({ children }) {
       return {
         success: true,
         user: response.data,
-        redirectTo: getDashboardRouteByRole(response.data?.role),
+        redirectTo: getDashboardRouteByRole(response.data?.role, response.data),
       };
     } catch (error) {
       return {
@@ -128,7 +128,7 @@ export function AuthProvider({ children }) {
     loginWithGoogle,
     logout,
     refreshUser: verifySession,
-    getDashboardRouteByRole,
+    getDashboardRouteByRole: (r, u = user) => getDashboardRouteByRole(r, u),
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

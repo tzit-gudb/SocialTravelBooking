@@ -168,3 +168,22 @@ Trong khi Backend xử lý Model dưới dạng ORM/Database Schema, Model ở F
   Giao diện hiển thị thuần túy (JSX/StyleSheet). Không chứa code tính toán phức tạp hay code gọi HTTP trực tiếp.
 - **Controller (C) - `features/[feature]/hooks/` & `services/`**:
   Custom React Hooks đóng vai trò là Controller: tiếp nhận sự kiện từ View, gọi API thông qua Service, cập nhật State, và chuyển giao dữ liệu đã chuẩn hóa qua Model cho View render.
+
+---
+
+## 6. Quy tắc sử dụng Icon có chọn lọc (Intentional & Minimal Icon Usage)
+
+Nhằm giữ giao diện luôn thoáng đãng, sắc gọn, chuyên nghiệp và tránh "nhiễu thị giác" (visual clutter), toàn bộ dự án tuân thủ nghiêm ngặt nguyên tắc **chỉ sử dụng icon ở những nơi thực sự cần thiết**:
+
+### 6.1. Khi nào NÊN dùng icon?
+
+1. **Thanh điều hướng cốt lõi (Navigation Tabs & Bottom Bar):** Giúp người dùng nhận diện nhanh phân vùng chức năng mà không tốn nhiều diện tích chữ.
+2. **Hành động không có nhãn chữ (Icon-only Buttons):** Các nút quen thuộc như nút đóng `Close (X)`, tìm kiếm `Search`, bật/tắt mật khẩu `Eye/EyeOff`, quét mã `QrCode`, quay lại `ChevronLeft/ArrowLeft`.
+3. **Chỉ báo trạng thái quan trọng (Status Indicators):** Icon `CheckCircle` (thành công), `AlertTriangle` (cảnh báo), `XCircle` (lỗi), hoặc ⭐ (rating) giúp người dùng quét mắt nắm bắt tình trạng ngay lập tức.
+4. **Trường nhập liệu đặc thù (Form Inputs):** Icon chỉ dẫn ngắn gọn ở đầu input khi cần làm rõ định dạng (ví dụ: lịch `Calendar` cho ngày khởi hành, `MapPin` cho địa điểm đón).
+
+### 6.2. Khi nào TUYỆT ĐỐI TRÁNH dùng icon (Icon thừa thãi)?
+
+1. **Không nhồi nhét icon cạnh mọi nút bấm có chữ:** Nếu nút đã có chữ rõ nghĩa (ví dụ: _"Đăng nhập"_, _"Đăng ký"_, _"Lưu thay đổi"_), không gắn thêm icon cạnh chữ một cách máy móc trừ khi đó là hành động đặc biệt (như nút Google Auth hoặc Tải file lên).
+2. **Không dùng icon làm vật trang trí thuần túy:** Không đặt icon chỉ để "lấp khoảng trống" trên màn hình hoặc trước mỗi dòng danh sách / đoạn văn khi chữ và typographic hierarchy đã đủ rõ ràng.
+3. **Không lặp lại icon:** Tránh tình trạng một màn hình có quá nhiều icon cùng mang một ý nghĩa hoặc icon xuất hiện dày đặc cạnh nhau làm phân tán sự tập trung của người dùng vào nội dung chính (ảnh du lịch, giá tour, thông tin vé).

@@ -221,7 +221,8 @@ class AuthService
                 ['user_id' => $user->id],
                 [
                     'business_name' => $extra['business_name'] ?? ($resolvedName.' Travel'),
-                    'business_type' => $extra['business_type'] ?? 'Tour & Lưu trú',
+                    'representative_name' => $extra['representative_name'] ?? $resolvedName,
+                    'business_type_id' => $extra['business_type_id'] ?? null,
                     'phone' => $extra['phone'] ?? null,
                     'address' => $extra['address'] ?? null,
                     'status' => ProviderStatus::Approved->value,
@@ -302,9 +303,18 @@ class AuthService
             'provider_profile' => $user->providerProfile ? [
                 'id' => $user->providerProfile->id,
                 'business_name' => $user->providerProfile->business_name,
-                'business_type' => $user->providerProfile->business_type,
+                'representative_name' => $user->providerProfile->representative_name,
+                'business_type_id' => $user->providerProfile->business_type_id,
+                'business_type' => $user->providerProfile->businessType ? [
+                    'id' => $user->providerProfile->businessType->id,
+                    'type' => $user->providerProfile->businessType->type,
+                    'name' => $user->providerProfile->businessType->name,
+                    'slug' => $user->providerProfile->businessType->slug,
+                ] : null,
                 'phone' => $user->providerProfile->phone,
                 'address' => $user->providerProfile->address,
+                'business_license_url' => $user->providerProfile->business_license_url,
+                'description' => $user->providerProfile->description,
                 'status' => $user->providerProfile->status,
             ] : null,
             'social_profile' => $user->socialProfile ? [
