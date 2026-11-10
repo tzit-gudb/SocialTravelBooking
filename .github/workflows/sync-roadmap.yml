@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       dry_run:
-        description: 'Chế độ chạy thử (Dry Run - chỉ in log, không tạo issue)'
+        description: "Chế độ chạy thử (Dry Run - chỉ in log, không tạo issue)"
         required: true
         type: boolean
         default: false

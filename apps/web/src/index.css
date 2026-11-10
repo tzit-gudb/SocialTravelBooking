@@ -7,11 +7,24 @@
   --color-surface-obsidian: #0b1320;
   --color-surface-obsidian-soft: #131f33;
 
+  /* Primary Brand - Sky Blue */
   --color-brand-primary: #0284c7;
   --color-brand-hover: #0369a1;
+  --color-brand-dark: #075985;
   --color-brand-light: #e0f2fe;
-  --color-brand-lagoon: #0d9488;
+  --color-brand-subtle: #f0f9ff;
 
+  /* Secondary 1 - Sunset Coral */
+  --color-secondary-warm: #f97316;
+  --color-secondary-warm-hover: #ea580c;
+  --color-secondary-warm-light: #ffedd5;
+  --color-secondary-warm-subtle: #fff7ed;
+
+  /* Secondary 2 - Lagoon Teal */
+  --color-secondary-lagoon: #0d9488;
+  --color-secondary-lagoon-light: #ccfbf1;
+
+  /* Neutrals */
   --color-ink-primary: #0f172a;
   --color-ink-body: #334155;
   --color-ink-subtle: #64748b;
@@ -20,12 +33,18 @@
   --color-border-subtle: #e2e8f0;
   --color-border-strong: #cbd5e1;
 
+  /* Status */
   --color-status-success: #059669;
+  --color-status-success-bg: #ecfdf5;
   --color-status-warning: #d97706;
+  --color-status-warning-bg: #fffbeb;
   --color-status-danger: #e11d48;
+  --color-status-danger-bg: #fff1f2;
 
+  /* Typography */
   --font-sans:
-    "Inter", "Plus Jakarta Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    "Plus Jakarta Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-logo: "Quicksand", sans-serif;
 }
 
 @layer base {

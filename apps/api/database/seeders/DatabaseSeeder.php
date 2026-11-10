@@ -4,6 +4,7 @@ namespace Database\Seeders;
 
 use App\Enums\UserRole;
 use App\Enums\UserStatus;
+use App\Models\BusinessType;
 use App\Models\User;
 use App\Services\AuthService;
 use Illuminate\Database\Seeder;
@@ -16,6 +17,12 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
+        // 0. Seed dữ liệu danh mục & loại hình kinh doanh
+        $this->call([
+            BusinessTypeSeeder::class,
+            CategorySeeder::class,
+        ]);
+
         $authService = app(AuthService::class);
 
         // 1. Tài khoản Quản trị viên (Admin)
@@ -38,10 +45,12 @@ class DatabaseSeeder extends Seeder
         $provider->social_active = true;
         $provider->save();
 
+        $defaultBusinessType = BusinessType::where('slug', 'tour-du-lich-trai-nghiem')->first();
+
         $authService->ensureUserEcosystem($provider, [
             'name' => 'Trần Hoàng Việt (Đối tác)',
             'business_name' => 'Đà Nẵng Ocean Travel & Retreat',
-            'business_type' => 'Tour biển đảo & Nghỉ dưỡng',
+            'business_type_id' => $defaultBusinessType?->id,
             'phone' => '0905123456',
             'address' => '218 Võ Nguyên Giáp, Sơn Trà, Đà Nẵng',
         ]);

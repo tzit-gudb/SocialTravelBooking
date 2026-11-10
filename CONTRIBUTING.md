@@ -155,6 +155,10 @@ Dự án đã tích hợp sẵn **Husky** và **lint-staged**:
 Tất cả thành viên bắt buộc phải tuân theo hướng dẫn chi tiết về cách đặt tên biến, hàm, class, cấu trúc Component và API Response tại:
 👉 **[docs/coding-conventions.md](docs/coding-conventions.md)**
 
+### 4.4. Quy chuẩn viết comment
+
+Chỉ comment những nội dung cần thiết và quan trọng đối với mã nguồn. Nội dung comment nhằm cho các thành viên khi đọc mã nguồn có thể hiểu được nội dung mã nguồn. Giúp cho việc Review, Bảo quản và Bảo trì mã nguồn trở nên dễ dàng hơn.
+
 ---
 
 ## 5. Quy trình đóng góp (Development & PR Workflow)

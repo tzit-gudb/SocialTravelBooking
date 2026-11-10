@@ -1,14 +1,14 @@
 import React, { useState } from "react";
 import { StyleSheet, ScrollView } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { colors, spacing } from "../theme/tokens";
-import { useAuth } from "../hooks/useAuth";
+import { colors, spacing } from "../../../theme/tokens";
+import { useAuth } from "../../../hooks/useAuth";
 
 // Import các sub-components theo kiến trúc Component-Based Architecture
-import ProviderHeader from "./components/provider/ProviderHeader";
-import ProviderMetricsRow from "./components/provider/ProviderMetricsRow";
-import ProviderQrScannerBox from "./components/provider/ProviderQrScannerBox";
-import ProviderBottomBar from "./components/provider/ProviderBottomBar";
+import ProviderHeader from "../components/ProviderHeader";
+import ProviderMetricsRow from "../components/ProviderMetricsRow";
+import ProviderQrScannerBox from "../components/ProviderQrScannerBox";
+import ProviderBottomBar from "../components/ProviderBottomBar";
 
 const PROVIDER_TABS = [
   { id: "dashboard", label: "Điều hành" },

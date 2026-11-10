@@ -11,6 +11,7 @@
   },
   "dependencies": {
     "@stb/shared-types": "workspace:*",
+    "@stb/tokens": "workspace:*",
     "firebase": "^11.4.0",
     "laravel-echo": "^2.6.1",
     "lucide-react": "^1.16.0",

@@ -106,6 +106,6 @@ class Booking extends Model
      */
     public function isCheckedIn(): bool
     {
-        return !is_null($this->checked_in_at);
+        return ! is_null($this->checked_in_at);
     }
 }

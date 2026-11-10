@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\V1\Auth\AuthController;
+use App\Http\Controllers\Api\V1\Media\MediaController;
 use Illuminate\Support\Facades\Route;
 
 // Public & authentication routes: /api/v1/...
@@ -23,4 +24,11 @@ Route::prefix('auth')->group(function () {
         Route::get('/me', [AuthController::class, 'me']);
         Route::post('/logout', [AuthController::class, 'logout']);
     });
+});
+
+// ── Media Storage Endpoints ───────────────────────────────────────
+Route::prefix('media')->middleware('firebase.auth')->group(function () {
+    Route::post('/upload', [MediaController::class, 'upload']);
+    Route::post('/upload-private', [MediaController::class, 'uploadPrivate']);
+    Route::get('/private/{path}', [MediaController::class, 'showPrivate'])->where('path', '.*');
 });

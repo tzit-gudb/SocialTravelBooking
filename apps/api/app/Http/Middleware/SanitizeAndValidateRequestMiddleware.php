@@ -38,7 +38,7 @@ class SanitizeAndValidateRequestMiddleware
 
         // 3. Làm sạch đệ quy toàn bộ input từ body và query
         $input = $request->all();
-        if (!empty($input)) {
+        if (! empty($input)) {
             $sanitized = $this->sanitizeArray($input);
             $request->replace($sanitized);
         }
@@ -56,6 +56,7 @@ class SanitizeAndValidateRequestMiddleware
         foreach ($data as $key => $value) {
             if (in_array($key, $this->except, true)) {
                 $cleaned[$key] = $value;
+
                 continue;
             }
 

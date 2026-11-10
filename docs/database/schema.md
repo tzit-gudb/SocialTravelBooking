@@ -60,22 +60,36 @@ Tài liệu thiết kế và đặc tả chi tiết Cơ sở dữ liệu cho d�
 | `id_card_number`           | `VARCHAR(30)`  | `NULLABLE`               | Số CCCD / Hộ chiếu                   |
 | `created_at`, `updated_at` | `TIMESTAMP`    |                          | Thời gian tạo và cập nhật            |
 
+#### `business_types` (Loại hình Doanh nghiệp Nhà cung cấp)
+
+Bảng định danh loại hình hoạt động của đối tác cung cấp dịch vụ (liên kết với `provider_profiles.business_type_id`).
+
+| Cột                        | Kiểu           | Ràng buộc            | Mô tả                                                                                                                                        |
+| :------------------------- | :------------- | :------------------- | :------------------------------------------------------------------------------------------------------------------------------------------- |
+| `id`                       | `BIGINT`       | `PK, AUTO_INCREMENT` | Khóa chính loại hình                                                                                                                         |
+| `type`                     | `VARCHAR(50)`  | `NOT NULL, INDEX`    | Nhóm ngành lớn: `Chỗ ở`, `Giải trí`, `Phương tiện`, `Ăn uống`                                                                                |
+| `name`                     | `VARCHAR(100)` | `NOT NULL`           | Tên cụ thể: `Tour du lịch & Trải nghiệm`, `Khách sạn`, `Homestay & Villa`, `Resort`, `Phương tiện di chuyển`, `Vé tàu`, `Nhà hàng & Ẩm thực` |
+| `slug`                     | `VARCHAR(100)` | `UNIQUE, NOT NULL`   | Mã định danh URL / API (`tour-du-lich-trai-nghiem`, `khach-san`, `homestay-villa`, `resort`...)                                              |
+| `created_at`, `updated_at` | `TIMESTAMP`    |                      | Thời gian tạo và cập nhật                                                                                                                    |
+
 #### `provider_profiles` (Hồ sơ Nhà cung cấp Dịch vụ)
 
-| Cột                        | Kiểu           | Ràng buộc                | Mô tả                                              |
-| :------------------------- | :------------- | :----------------------- | :------------------------------------------------- |
-| `id`                       | `BIGINT`       | `PK, AUTO_INCREMENT`     | Khóa chính nhà cung cấp                            |
-| `user_id`                  | `BIGINT`       | `UNIQUE, FK -> users.id` | Tài khoản đại diện doanh nghiệp                    |
-| `business_name`            | `VARCHAR(255)` | `NOT NULL`               | Tên thương mại công ty / cơ sở                     |
-| `business_type`            | `VARCHAR(100)` | `NULLABLE`               | Loại hình: Khách sạn, Tour du lịch, Cho thuê xe... |
-| `address`                  | `TEXT`         | `NULLABLE`               | Địa chỉ văn phòng / cơ sở kinh doanh               |
-| `phone`                    | `VARCHAR(20)`  | `NULLABLE`               | Hotline hỗ trợ khách hàng                          |
-| `description`              | `TEXT`         | `NULLABLE`               | Giới thiệu doanh nghiệp                            |
-| `status`                   | `VARCHAR(30)`  | `DEFAULT 'pending'`      | `pending`, `approved`, `rejected`, `suspended`     |
-| `rejection_reason`         | `TEXT`         | `NULLABLE`               | Lý do từ chối kiểm duyệt                           |
-| `approved_by`              | `BIGINT`       | `FK -> users.id`         | Admin phê duyệt                                    |
-| `approved_at`              | `TIMESTAMP`    | `NULLABLE`               | Thời điểm phê duyệt                                |
-| `created_at`, `updated_at` | `TIMESTAMP`    |                          | Thời gian tạo và cập nhật                          |
+| Cột                        | Kiểu           | Ràng buộc                 | Mô tả                                                             |
+| :------------------------- | :------------- | :------------------------ | :---------------------------------------------------------------- |
+| `id`                       | `BIGINT`       | `PK, AUTO_INCREMENT`      | Khóa chính nhà cung cấp                                           |
+| `user_id`                  | `BIGINT`       | `UNIQUE, FK -> users.id`  | Tài khoản đại diện doanh nghiệp                                   |
+| `business_name`            | `VARCHAR(255)` | `NOT NULL`                | Tên thương mại công ty / cơ sở                                    |
+| `representative_name`      | `VARCHAR(255)` | `NULLABLE`                | Tên người đại diện pháp luật / chủ cơ sở                          |
+| `business_type_id`         | `BIGINT`       | `FK -> business_types.id` | Liên kết loại hình kinh doanh chính                               |
+| `phone`                    | `VARCHAR(20)`  | `NULLABLE`                | Hotline hỗ trợ khách hàng                                         |
+| `address`                  | `TEXT`         | `NULLABLE`                | Địa chỉ văn phòng / cơ sở kinh doanh                              |
+| `business_license_url`     | `JSONB`        | `NULLABLE`                | Danh sách đường dẫn ảnh/tài liệu Giấy phép kinh doanh (mảng JSON) |
+| `description`              | `TEXT`         | `NULLABLE`                | Giới thiệu doanh nghiệp                                           |
+| `status`                   | `VARCHAR(30)`  | `DEFAULT 'pending'`       | `pending`, `approved`, `rejected`, `suspended`                    |
+| `rejection_reason`         | `TEXT`         | `NULLABLE`                | Lý do từ chối kiểm duyệt                                          |
+| `approved_by`              | `BIGINT`       | `FK -> users.id`          | Admin phê duyệt                                                   |
+| `approved_at`              | `TIMESTAMP`    | `NULLABLE`                | Thời điểm phê duyệt                                               |
+| `created_at`, `updated_at` | `TIMESTAMP`    |                           | Thời gian tạo và cập nhật                                         |
 
 #### `social_profiles` (Hồ sơ Mạng xã hội Cá nhân)
 
@@ -115,15 +129,15 @@ Tài liệu thiết kế và đặc tả chi tiết Cơ sở dữ liệu cho d�
 
 #### `categories` (Danh mục dịch vụ)
 
-| Cột                        | Kiểu           | Ràng buộc            | Mô tả                                              |
-| :------------------------- | :------------- | :------------------- | :------------------------------------------------- |
-| `id`                       | `BIGINT`       | `PK, AUTO_INCREMENT` | Khóa chính                                         |
-| `name`                     | `VARCHAR(255)` | `NOT NULL`           | Tên danh mục (Tour biển đảo, Homestay view núi...) |
-| `slug`                     | `VARCHAR(255)` | `UNIQUE, NOT NULL`   | Đường dẫn thân thiện                               |
-| `icon`                     | `VARCHAR(100)` | `NULLABLE`           | Tên icon Lucide/Material                           |
-| `icon_url`                 | `TEXT`         | `NULLABLE`           | Hình ảnh icon tùy biến                             |
-| `description`              | `TEXT`         | `NULLABLE`           | Mô tả danh mục                                     |
-| `created_at`, `updated_at` | `TIMESTAMP`    |                      | Thời gian tạo và cập nhật                          |
+| Cột                        | Kiểu           | Ràng buộc            | Mô tả                                                                                |
+| :------------------------- | :------------- | :------------------- | :----------------------------------------------------------------------------------- |
+| `id`                       | `BIGINT`       | `PK, AUTO_INCREMENT` | Khóa chính                                                                           |
+| `name`                     | `VARCHAR(255)` | `NOT NULL`           | Tên chủ đề trải nghiệm: Biển đảo & Lặn ngắm san hô, Trekking & Săn mây, Food Tour... |
+| `slug`                     | `VARCHAR(255)` | `UNIQUE, NOT NULL`   | Đường dẫn thân thiện                                                                 |
+| `icon`                     | `VARCHAR(100)` | `NULLABLE`           | Tên icon Lucide/Material                                                             |
+| `icon_url`                 | `TEXT`         | `NULLABLE`           | Hình ảnh icon tùy biến                                                               |
+| `description`              | `TEXT`         | `NULLABLE`           | Mô tả danh mục                                                                       |
+| `created_at`, `updated_at` | `TIMESTAMP`    |                      | Thời gian tạo và cập nhật                                                            |
 
 #### `services` (Sản phẩm dịch vụ du lịch)
 

@@ -19,9 +19,16 @@ class FirebaseAuthMiddleware
      */
     public function handle(Request $request, Closure $next): mixed
     {
+        // Hỗ trợ trường hợp kiểm thử tự động với Sanctum::actingAs() hoặc Auth::login()
+        if ($request->user()) {
+            $request->attributes->set('userModel', $request->user());
+
+            return $next($request);
+        }
+
         $bearerToken = $request->bearerToken();
 
-        if (!$bearerToken) {
+        if (! $bearerToken) {
             return $this->unauthorizedResponse('Vui lòng đăng nhập để tiếp tục.');
         }
 
@@ -62,7 +69,7 @@ class FirebaseAuthMiddleware
                 }
 
                 // Tự động gắn firebase_uid nếu tài khoản đã có sẵn qua email
-                if (!$user->firebase_uid && $uid) {
+                if (! $user->firebase_uid && $uid) {
                     $user->update(['firebase_uid' => $uid]);
                 }
 
@@ -73,12 +80,14 @@ class FirebaseAuthMiddleware
             return $next($request);
         } catch (RevokedIdToken $e) {
             Log::warning('Firebase Auth: Token revoked', ['error' => $e->getMessage()]);
+
             return $this->unauthorizedResponse('Phiên đăng nhập đã hết hạn hoặc bị thu hồi. Vui lòng đăng nhập lại.');
         } catch (FailedToVerifyToken $e) {
             Log::warning('Firebase Auth: Invalid token', ['error' => $e->getMessage()]);
+
             return $this->unauthorizedResponse('Mã xác thực không hợp lệ hoặc đã hết hạn.');
         } catch (\Throwable $e) {
-            Log::error('Firebase Auth Error: ' . $e->getMessage(), [
+            Log::error('Firebase Auth Error: '.$e->getMessage(), [
                 'file' => $e->getFile(),
                 'line' => $e->getLine(),
             ]);
@@ -97,7 +106,7 @@ class FirebaseAuthMiddleware
     {
         $accessToken = PersonalAccessToken::findToken($bearerToken);
 
-        if (!$accessToken || !$accessToken->tokenable instanceof User) {
+        if (! $accessToken || ! $accessToken->tokenable instanceof User) {
             return $this->unauthorizedResponse('Phiên đăng nhập không hợp lệ hoặc đã hết hạn.');
         }
 
@@ -111,7 +120,7 @@ class FirebaseAuthMiddleware
             ], 403);
         }
 
-        $request->attributes->set('firebaseUid', $user->firebase_uid ?? 'local_' . $user->id);
+        $request->attributes->set('firebaseUid', $user->firebase_uid ?? 'local_'.$user->id);
         $request->attributes->set('firebaseEmail', $user->email);
         $request->attributes->set('firebaseUser', [
             'name' => $user->name,

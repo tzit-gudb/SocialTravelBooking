@@ -14,9 +14,11 @@ class ProviderProfile extends Model
     protected $fillable = [
         'user_id',
         'business_name',
-        'business_type',
-        'address',
+        'representative_name',
+        'business_type_id',
         'phone',
+        'address',
+        'business_license_url',
         'description',
         'status',
         'rejection_reason',
@@ -28,12 +30,18 @@ class ProviderProfile extends Model
     {
         return [
             'approved_at' => 'datetime',
+            'business_license_url' => 'array',
         ];
     }
 
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    public function businessType(): BelongsTo
+    {
+        return $this->belongsTo(BusinessType::class, 'business_type_id');
     }
 
     public function approvedByUser(): BelongsTo

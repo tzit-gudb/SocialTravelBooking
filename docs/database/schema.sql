@@ -41,26 +41,41 @@ CREATE TABLE IF NOT EXISTS tourist_profiles (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- 1.3 Bảng Hồ sơ Nhà cung cấp dịch vụ (Doanh nghiệp / Cơ sở lưu trú / Lữ hành)
+-- 1.3 Bảng Loại hình Doanh nghiệp Đối tác (Business Types - Phục vụ định danh Provider)
+CREATE TABLE IF NOT EXISTS business_types (
+    id BIGSERIAL PRIMARY KEY,
+    type VARCHAR(50) NOT NULL, -- Nhóm ngành lớn: 'Chỗ ở', 'Giải trí', 'Phương tiện', 'Ăn uống'
+    name VARCHAR(100) NOT NULL, -- Tên chi tiết: 'Tour du lịch & Trải nghiệm', 'Khách sạn', 'Homestay & Villa', 'Resort', 'Phương tiện di chuyển', 'Vé tàu', 'Nhà hàng & Ẩm thực'
+    slug VARCHAR(100) UNIQUE NOT NULL, -- 'tour-du-lich-trai-nghiem', 'khach-san', 'homestay-villa', 'resort'...
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_business_types_type ON business_types(type);
+CREATE INDEX IF NOT EXISTS idx_business_types_slug ON business_types(slug);
+
+-- 1.4 Bảng Hồ sơ Nhà cung cấp dịch vụ (Doanh nghiệp / Cơ sở lưu trú / Lữ hành)
 CREATE TABLE IF NOT EXISTS provider_profiles (
     id BIGSERIAL PRIMARY KEY,
     user_id BIGINT UNIQUE NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     business_name VARCHAR(255) NOT NULL,
-    business_type VARCHAR(100) NULL, -- Khách sạn, Tour du lịch, Homestay, Cho thuê xe
-    address TEXT NULL,
-    phone VARCHAR(20) NULL,
-    description TEXT NULL,
+    representative_name VARCHAR(255) NULL, -- Tên người đại diện pháp luật / chủ cơ sở
+    business_type_id BIGINT NULL REFERENCES business_types(id) ON DELETE SET NULL,
+    phone VARCHAR(20) NULL, -- Hotline hỗ trợ khách hàng
+    address TEXT NULL, -- Địa chỉ văn phòng / cơ sở kinh doanh
+    business_license_url JSONB NULL, -- Danh sách đường dẫn ảnh/tài liệu Giấy phép kinh doanh (mảng JSON) lưu trữ tại backend
+    description TEXT NULL, -- Giới thiệu doanh nghiệp
     status VARCHAR(30) NOT NULL DEFAULT 'pending', -- 'pending', 'approved', 'rejected', 'suspended'
-    rejection_reason TEXT NULL,
-    approved_by BIGINT NULL REFERENCES users(id) ON DELETE SET NULL,
-    approved_at TIMESTAMP NULL,
+    rejection_reason TEXT NULL, -- Lý do từ chối kiểm duyệt
+    approved_by BIGINT NULL REFERENCES users(id) ON DELETE SET NULL, -- Admin phê duyệt
+    approved_at TIMESTAMP NULL, -- Thời điểm phê duyệt
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE INDEX IF NOT EXISTS idx_provider_profiles_status ON provider_profiles(status);
 
--- 1.4 Bảng Hồ sơ Mạng xã hội Cá nhân (Độc lập với hồ sơ booking)
+-- 1.5 Bảng Hồ sơ Mạng xã hội Cá nhân (Độc lập với hồ sơ booking)
 CREATE TABLE IF NOT EXISTS social_profiles (
     id BIGSERIAL PRIMARY KEY,
     user_id BIGINT UNIQUE NOT NULL REFERENCES users(id) ON DELETE CASCADE,
