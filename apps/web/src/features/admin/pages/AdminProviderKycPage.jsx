@@ -113,13 +113,16 @@ export default function AdminProviderKycPage() {
       </div>
 
       {/* Modal Xem chi tiết & Thẩm định tài liệu */}
-      <KycDetailModal
-        provider={selectedProvider}
-        isOpen={Boolean(selectedProvider)}
-        onClose={() => setSelectedProvider(null)}
-        onApprove={handleApprove}
-        onRequestReject={handleRequestReject}
-      />
+      {selectedProvider && (
+        <KycDetailModal
+          key={selectedProvider.id}
+          provider={selectedProvider}
+          isOpen={Boolean(selectedProvider)}
+          onClose={() => setSelectedProvider(null)}
+          onApprove={handleApprove}
+          onRequestReject={handleRequestReject}
+        />
+      )}
 
       {/* Hộp thoại Nhập lý do Từ chối hồ sơ */}
       <KycRejectDialog

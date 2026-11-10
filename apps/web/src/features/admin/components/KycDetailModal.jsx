@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { ZoomIn, ZoomOut, RotateCcw, X, Eye } from "lucide-react";
+import { ZoomIn, ZoomOut, RotateCcw, X } from "lucide-react";
 import Typography from "../../../components/ui/Typography";
 
 /**
@@ -11,22 +11,31 @@ export default function KycDetailModal({ provider, isOpen, onClose, onApprove, o
 
   if (!isOpen || !provider) return null;
 
-  // Xử lý danh sách file giấy phép (hỗ trợ cả 1 URL đơn, mảng JSON hoặc file PDF)
+  // Xử lý an toàn danh sách file giấy phép (hỗ trợ Array, JSON String, URL đơn lẻ hoặc rỗng)
   let licenseList = [];
-  const rawUrl = provider.business_license_url || "";
-  const isPdf = rawUrl.includes(".pdf") || rawUrl.includes("data:application/pdf");
+  const rawLicense = provider.business_license_url;
 
-  if (rawUrl.startsWith("[") && rawUrl.endsWith("]")) {
-    try {
-      licenseList = JSON.parse(rawUrl);
-    } catch {
-      licenseList = [rawUrl];
+  if (Array.isArray(rawLicense)) {
+    licenseList = rawLicense.filter(Boolean);
+  } else if (typeof rawLicense === "string" && rawLicense.trim().length > 0) {
+    const trimmed = rawLicense.trim();
+    if (trimmed.startsWith("[") && trimmed.endsWith("]")) {
+      try {
+        const parsed = JSON.parse(trimmed);
+        licenseList = Array.isArray(parsed) ? parsed.filter(Boolean) : [trimmed];
+      } catch {
+        licenseList = [trimmed];
+      }
+    } else {
+      licenseList = [trimmed];
     }
-  } else if (rawUrl) {
-    licenseList = [rawUrl];
   }
 
-  const currentMediaUrl = licenseList[activeImageIndex] || rawUrl;
+  const currentMediaUrl = licenseList[activeImageIndex] || licenseList[0] || "";
+  const isPdf =
+    typeof currentMediaUrl === "string" &&
+    (currentMediaUrl.toLowerCase().includes(".pdf") ||
+      currentMediaUrl.includes("data:application/pdf"));
 
   const handleZoomIn = () => {
     setZoomScale((prev) => Math.min(Number((prev + 0.25).toFixed(2)), 3));
