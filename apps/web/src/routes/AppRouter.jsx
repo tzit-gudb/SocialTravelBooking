@@ -6,6 +6,7 @@ import AuthPage from "../features/auth/pages/AuthPage";
 import PlatformUnsupportedPage from "../features/auth/pages/PlatformUnsupportedPage";
 import ProviderOnboardingPage from "../features/provider/pages/ProviderOnboardingPage";
 import AdminDashboardPage from "../features/admin/pages/AdminDashboardPage";
+import AdminProviderKycPage from "../features/admin/pages/AdminProviderKycPage";
 import ProviderDashboardPage from "../features/provider/pages/ProviderDashboardPage";
 import NotFoundPage from "../features/common/pages/NotFoundPage";
 import Typography from "../components/ui/Typography";
@@ -144,12 +145,49 @@ export default function AppRouter() {
           }
         />
 
-        {/* Bảng điều khiển Quản trị viên (Admin) - Bảo vệ bằng ProtectedRoute */}
+        {/* Phân hệ Quản trị viên (Admin) - Tách route riêng biệt */}
+        {/* 1. Route Tổng quan vận hành */}
+        <Route
+          path="/admin/dashboard"
+          element={
+            <ProtectedRoute allowedRoles={["admin"]}>
+              <AdminDashboardPage />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* 2. Route riêng biệt: Kiểm duyệt Nhà cung cấp (KYC) */}
+        <Route
+          path="/admin/providers"
+          element={
+            <ProtectedRoute allowedRoles={["admin"]}>
+              <AdminProviderKycPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/kyc"
+          element={
+            <ProtectedRoute allowedRoles={["admin"]}>
+              <AdminProviderKycPage />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* Route mặc định cho /admin -> Chuyển về /admin/dashboard */}
+        <Route
+          path="/admin"
+          element={
+            <ProtectedRoute allowedRoles={["admin"]}>
+              <Navigate to="/admin/dashboard" replace />
+            </ProtectedRoute>
+          }
+        />
         <Route
           path="/admin/*"
           element={
             <ProtectedRoute allowedRoles={["admin"]}>
-              <AdminDashboardPage />
+              <Navigate to="/admin/dashboard" replace />
             </ProtectedRoute>
           }
         />

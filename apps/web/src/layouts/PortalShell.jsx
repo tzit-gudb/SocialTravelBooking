@@ -1,6 +1,6 @@
 import React from "react";
-import { useNavigate } from "react-router-dom";
-import { Compass, LogOut, ShieldCheck, Building2, User } from "lucide-react";
+import { useNavigate, useLocation } from "react-router-dom";
+import { Compass, LogOut } from "lucide-react";
 import Typography from "../components/ui/Typography";
 import { useAuth } from "../hooks/useAuth";
 
@@ -13,6 +13,7 @@ export default function PortalShell({
   children,
 }) {
   const navigate = useNavigate();
+  const location = useLocation();
   const { user, logout } = useAuth();
 
   const handleLogout = async () => {
@@ -44,12 +45,18 @@ export default function PortalShell({
           <nav className="p-3 space-y-1">
             {navItems.map((item) => {
               const Icon = item.icon;
-              const isActive = activeTab === item.id;
+              const isActive = item.path ? location.pathname === item.path : activeTab === item.id;
+
               return (
                 <button
                   key={item.id}
                   type="button"
-                  onClick={() => onSelectTab?.(item.id)}
+                  onClick={() => {
+                    if (item.path) {
+                      navigate(item.path);
+                    }
+                    onSelectTab?.(item.id);
+                  }}
                   className={`w-full px-3.5 py-2.5 rounded-lg flex items-center justify-between text-sm font-medium transition-colors cursor-pointer ${
                     isActive
                       ? "bg-brand-light/60 text-brand-hover font-semibold"
@@ -61,7 +68,7 @@ export default function PortalShell({
                     <span>{item.label}</span>
                   </span>
                   {item.badge && (
-                    <span className="px-2 py-0.5 rounded-full text-xs bg-surface-elevated border border-border-subtle text-ink-primary">
+                    <span className="px-2 py-0.5 rounded-full text-xs bg-surface-elevated border border-border-subtle text-ink-primary font-bold">
                       {item.badge}
                     </span>
                   )}
@@ -98,42 +105,10 @@ export default function PortalShell({
         </div>
       </aside>
 
-      {/* Khu vực nội dung chính */}
-      <div className="flex-1 flex flex-col min-w-0">
-        <header className="bg-surface-elevated border-b border-border-subtle px-6 lg:px-8 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            {user?.role === "admin" ? (
-              <ShieldCheck className="w-4 h-4 text-brand-primary" />
-            ) : user?.role === "provider" ? (
-              <Building2 className="w-4 h-4 text-brand-lagoon" />
-            ) : (
-              <User className="w-4 h-4 text-brand-primary" />
-            )}
-            <Typography variant="body-sm" className="font-medium">
-              Phiên xác thực:{" "}
-              <span className="font-semibold text-ink-primary">
-                {user?.provider_profile?.business_name || user?.name}
-              </span>
-            </Typography>
-          </div>
-
-          <div className="flex items-center gap-4">
-            {user?.wallet && (
-              <div className="px-3 py-1 rounded-full bg-surface-muted border border-border-subtle">
-                <Typography variant="caption" className="text-ink-body">
-                  Số dư ví:{" "}
-                  <strong className="text-ink-primary">
-                    {Number(user.wallet.balance || 0).toLocaleString("vi-VN")}{" "}
-                    {user.wallet.currency}
-                  </strong>
-                </Typography>
-              </div>
-            )}
-          </div>
-        </header>
-
-        <main className="flex-1 p-6 lg:p-8 max-w-6xl w-full mx-auto">{children}</main>
-      </div>
+      {/* Vùng nội dung chính */}
+      <main className="flex-1 p-6 sm:p-8 lg:p-10 max-w-7xl w-full mx-auto overflow-y-auto">
+        {children}
+      </main>
     </div>
   );
 }
