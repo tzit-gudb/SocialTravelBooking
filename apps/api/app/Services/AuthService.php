@@ -59,7 +59,7 @@ class AuthService
             $password = $firebaseData['password'] ?? null;
             $requestedRole = in_array($firebaseData['role'] ?? '', [UserRole::Tourist->value, UserRole::Provider->value], true)
                 ? $firebaseData['role']
-                : UserRole::Provider->value;
+                : UserRole::Tourist->value;
 
             $isNewUser = false;
 
@@ -104,6 +104,31 @@ class AuthService
                 if ($dirty) {
                     $user->save();
                 }
+            }
+
+            // Đảm bảo khởi tạo ví tiền mặc định cho tài khoản đăng nhập/đồng bộ từ Google
+            Wallet::firstOrCreate(
+                ['user_id' => $user->id],
+                ['balance' => 0.00, 'locked_balance' => 0.00, 'currency' => 'VND']
+            );
+
+            // Đồng bộ ảnh đại diện (avatar) và tên hiển thị từ Google vào SocialProfile
+            $avatar = $firebaseData['picture'] ?? $firebaseData['avatar_url'] ?? $firebaseData['avatarUrl'] ?? null;
+            $displayName = $firebaseData['name'] ?? $firebaseData['displayName'] ?? $firebaseData['display_name'] ?? null;
+
+            if ($avatar || $displayName) {
+                $socialProfile = SocialProfile::firstOrNew(['user_id' => $user->id]);
+                if ($avatar) {
+                    $socialProfile->avatar_url = $avatar;
+                }
+                if ($displayName && empty($socialProfile->display_name)) {
+                    $socialProfile->display_name = $displayName;
+                }
+                if (empty($socialProfile->username)) {
+                    $usernameBase = explode('@', $user->email ?? '')[0] ?? 'user';
+                    $socialProfile->username = Str::slug($usernameBase).'_'.Str::lower(Str::random(6));
+                }
+                $socialProfile->save();
             }
 
             $sanctumToken = $user->createToken('stb_client_token')->plainTextToken;
