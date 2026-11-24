@@ -255,51 +255,87 @@ export default function BookingDetailScreen({ navigation, route }) {
             {/* Lịch trình & Số lượng */}
             <View style={styles.card}>
               <AppText style={styles.sectionTitle}>Lịch trình & Số lượng</AppText>
-              <View style={styles.infoRow}>
-                <Calendar size={16} color={colors.brandPrimary} />
-                <AppText style={styles.infoLabel}>Thời gian:</AppText>
-                <AppText style={styles.infoValue}>
-                  {formatBookingDateRange(booking.start_date, booking.end_date)}
-                </AppText>
-              </View>
-              <View style={styles.infoRow}>
-                <AppText style={styles.infoLabel}>Số lượng:</AppText>
-                <AppText style={styles.infoValue}>
-                  {booking.quantity || 1} ({booking.duration_units || 1} đơn vị thời gian)
-                </AppText>
-              </View>
-              {booking.metadata?.num_adults || booking.metadata?.num_children ? (
-                <View style={styles.infoRow}>
-                  <AppText style={styles.infoLabel}>Số khách:</AppText>
-                  <AppText style={styles.infoValue}>
-                    {booking.metadata?.num_adults || 1} người lớn
-                    {Number(booking.metadata?.num_children) > 0
-                      ? `, ${booking.metadata.num_children} trẻ em`
-                      : ""}
-                  </AppText>
-                </View>
-              ) : null}
-              {booking.policy_rules?.checkin_time || booking.policy_rules?.checkout_time ? (
-                <View style={styles.infoRow}>
-                  <Clock size={15} color={colors.brandPrimary} />
-                  <AppText style={styles.infoLabel}>Giờ nhận/trả:</AppText>
-                  <AppText style={styles.infoValue}>
-                    {booking.policy_rules.checkin_time || "14:00"} –{" "}
-                    {booking.policy_rules.checkout_time || "12:00"}
-                  </AppText>
-                </View>
-              ) : null}
-              {booking.policy_rules?.cancellation?.label ? (
-                <View style={styles.infoRow}>
-                  <ShieldCheck
-                    size={15}
-                    color={booking.policy_rules.cancellation.refundable ? "#059669" : "#E11D48"}
-                  />
-                  <AppText style={styles.infoValue}>
-                    {booking.policy_rules.cancellation.label}
-                  </AppText>
-                </View>
-              ) : null}
+              {(() => {
+                const isStay = service?.type === "hotel" || service?.type === "homestay";
+                const isTrain =
+                  service?.type === "train" ||
+                  String(service?.category?.slug || "")
+                    .toLowerCase()
+                    .includes("tau");
+                const isVehicle = service?.type === "vehicle" && !isTrain;
+                const unitLabel = isStay ? "phòng" : isVehicle ? "phương tiện" : "vé";
+                const durationLabel = isStay
+                  ? `${booking.duration_units || 1} đêm`
+                  : isVehicle
+                    ? `${booking.duration_units || 1} ngày`
+                    : null;
+
+                return (
+                  <View style={styles.scheduleList}>
+                    <View style={styles.scheduleRow}>
+                      <View style={styles.scheduleLabelWrap}>
+                        <Calendar size={15} color={colors.brandPrimary} />
+                        <AppText style={styles.scheduleLabel}>Thời gian</AppText>
+                      </View>
+                      <AppText style={styles.scheduleValue}>
+                        {formatBookingDateRange(booking.start_date, booking.end_date)}
+                        {durationLabel ? ` (${durationLabel})` : ""}
+                      </AppText>
+                    </View>
+
+                    <View style={styles.scheduleRow}>
+                      <AppText style={styles.scheduleLabel}>Số lượng</AppText>
+                      <AppText style={styles.scheduleValue}>
+                        {booking.quantity || 1} {unitLabel}
+                      </AppText>
+                    </View>
+
+                    {isStay ? (
+                      <View style={styles.scheduleRow}>
+                        <AppText style={styles.scheduleLabel}>Số khách</AppText>
+                        <AppText style={styles.scheduleValue}>
+                          {booking.metadata?.num_adults || 1} người lớn
+                          {Number(booking.metadata?.num_children) > 0
+                            ? `, ${booking.metadata.num_children} trẻ em`
+                            : ""}
+                        </AppText>
+                      </View>
+                    ) : null}
+
+                    {booking.policy_rules?.checkin_time || booking.policy_rules?.checkout_time ? (
+                      <View style={styles.scheduleRow}>
+                        <View style={styles.scheduleLabelWrap}>
+                          <Clock size={15} color={colors.brandPrimary} />
+                          <AppText style={styles.scheduleLabel}>
+                            {isStay ? "Giờ nhận / trả" : "Giờ giao / nhận"}
+                          </AppText>
+                        </View>
+                        <AppText style={styles.scheduleValue}>
+                          {booking.policy_rules.checkin_time || "14:00"} –{" "}
+                          {booking.policy_rules.checkout_time || "12:00"}
+                        </AppText>
+                      </View>
+                    ) : null}
+
+                    {booking.policy_rules?.cancellation?.label ? (
+                      <View style={styles.scheduleRow}>
+                        <View style={styles.scheduleLabelWrap}>
+                          <ShieldCheck
+                            size={15}
+                            color={
+                              booking.policy_rules.cancellation.refundable ? "#059669" : "#E11D48"
+                            }
+                          />
+                          <AppText style={styles.scheduleLabel}>Hoàn / hủy</AppText>
+                        </View>
+                        <AppText style={styles.scheduleValue}>
+                          {booking.policy_rules.cancellation.label}
+                        </AppText>
+                      </View>
+                    ) : null}
+                  </View>
+                );
+              })()}
               {booking.metadata?.special_requests ? (
                 <View style={styles.noteBox}>
                   <AppText style={styles.noteLabel}>Ghi chú đặc biệt</AppText>
@@ -617,6 +653,31 @@ const styles = StyleSheet.create({
   },
   infoValue: {
     flex: 1,
+    fontSize: 13.5,
+    fontWeight: "600",
+    color: colors.inkPrimary,
+  },
+  scheduleList: {
+    gap: 10,
+  },
+  scheduleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 12,
+  },
+  scheduleLabelWrap: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  },
+  scheduleLabel: {
+    fontSize: 13,
+    color: colors.inkMuted,
+  },
+  scheduleValue: {
+    flex: 1,
+    textAlign: "right",
     fontSize: 13.5,
     fontWeight: "600",
     color: colors.inkPrimary,

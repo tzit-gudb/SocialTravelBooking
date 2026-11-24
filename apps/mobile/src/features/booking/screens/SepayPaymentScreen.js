@@ -169,22 +169,13 @@ export default function SepayPaymentScreen({ navigation, route }) {
         if (res?.booking_status === "confirmed" || res?.payment_status === "paid") {
           setIsPaid(true);
           await clearPendingBooking();
-          Alert.alert(
-            "Thanh toán thành công!",
-            `Đơn ${res.booking_code || bookingCode} đã được xác nhận.`,
-            [
-              {
-                text: "Xem chi tiết đơn",
-                onPress: () => {
-                  navigation.replace("BookingDetail", {
-                    bookingId: res.booking_id || bookingId,
-                    bookingCode: res.booking_code || bookingCode,
-                    contactPhone,
-                  });
-                },
-              },
-            ],
-          );
+          navigation.replace("PaymentSuccess", {
+            bookingId: res.booking_id || bookingId,
+            bookingCode: res.booking_code || bookingCode,
+            contactPhone,
+            serviceName: serviceName || "Dịch vụ du lịch",
+            amount: res.amount ?? qrData?.amount ?? depositAmount,
+          });
         } else if (res?.booking_status === "expired" || res?.booking_status === "cancelled") {
           await clearPendingBooking();
           setError("Đơn đặt chỗ đã hết hạn hoặc bị hủy.");
@@ -212,6 +203,9 @@ export default function SepayPaymentScreen({ navigation, route }) {
       isAuthenticated,
       clearPendingBooking,
       navigation,
+      serviceName,
+      qrData?.amount,
+      depositAmount,
     ],
   );
 

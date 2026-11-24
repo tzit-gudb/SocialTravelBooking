@@ -7,6 +7,7 @@ use App\Http\Controllers\Api\V1\Public\PublicPostController;
 use App\Http\Controllers\Api\V1\Public\PublicServiceController;
 use App\Http\Controllers\Api\V1\Tourist\TouristBookingController;
 use App\Http\Controllers\Api\V1\Tourist\TouristPaymentController;
+use App\Http\Controllers\Api\V1\Webhook\SepayWebhookController;
 use Illuminate\Support\Facades\Route;
 
 // Public & authentication routes: /api/v1/...
@@ -66,3 +67,6 @@ Route::prefix('public')->group(function () {
     Route::post('/bookings/{bookingCode}/payment/sepay', [TouristPaymentController::class, 'createGuestSepayQr']);
     Route::get('/bookings/{bookingCode}/payment/status', [TouristPaymentController::class, 'guestPaymentStatus']);
 });
+
+// ── Payment Gateway Webhooks ──────────────────────────────────────
+Route::post('/webhooks/sepay', [SepayWebhookController::class, 'handle']);

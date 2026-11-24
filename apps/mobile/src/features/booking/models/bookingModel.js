@@ -100,5 +100,13 @@ export function formatCountdown(totalSeconds) {
 }
 
 export function canCancelBooking(booking) {
-  return booking?.status === "pending_payment" || booking?.status === "confirmed";
+  if (!booking) return false;
+  if (booking.status === "pending_payment") {
+    return true;
+  }
+  if (booking.status === "confirmed") {
+    const cancelPolicy = booking.policy_rules?.cancellation;
+    return Boolean(cancelPolicy && (cancelPolicy.refundable || cancelPolicy.allow_reschedule));
+  }
+  return false;
 }
