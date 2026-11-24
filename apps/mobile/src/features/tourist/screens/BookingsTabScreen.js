@@ -1,4 +1,4 @@
-﻿import React, { useCallback, useRef, useState } from "react";
+﻿import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -17,6 +17,7 @@ import { CalendarCheck2, Compass, QrCode, Search, ShieldCheck } from "lucide-rea
 import AppText from "../../../components/common/AppText";
 import Skeleton from "../../../components/common/Skeleton";
 import { useAuth } from "../../../hooks/useAuth";
+import { echo } from "../../../lib/echo";
 import { colors, radius, spacing } from "../../../theme/tokens";
 import BookingCard from "../../booking/components/BookingCard";
 import { BOOKING_STATUS_FILTERS } from "../../booking/models/bookingModel";
@@ -145,6 +146,37 @@ export default function BookingsTabScreen({ navigation }) {
       };
     }, [isAuthenticated, fetchBookings]),
   );
+
+  useEffect(() => {
+    if (!isAuthenticated || !user?.id) return undefined;
+
+    const channelName = `tourist.${user.id}.bookings`;
+    const channel = echo.channel(channelName);
+
+    channel.listen(".booking.updated", (payload) => {
+      if (!payload?.booking_id) return;
+
+      setBookings((prev) =>
+        prev.map((item) =>
+          item.id === payload.booking_id
+            ? {
+                ...item,
+                status: payload.status || item.status,
+                checked_in_at: payload.checked_in_at ?? item.checked_in_at,
+                cancelled_at: payload.cancelled_at ?? item.cancelled_at,
+                cancel_reason: payload.cancel_reason ?? item.cancel_reason,
+              }
+            : item,
+        ),
+      );
+
+      fetchBookings({ page: 1, append: false, isRefresh: false, force: true });
+    });
+
+    return () => {
+      echo.leaveChannel(channelName);
+    };
+  }, [isAuthenticated, user?.id, fetchBookings]);
 
   const handleLoadMore = () => {
     if (loading || loadingMore || refreshing) return;

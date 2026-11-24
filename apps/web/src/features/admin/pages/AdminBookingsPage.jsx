@@ -1,9 +1,10 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import { useSearchParams } from "react-router-dom";
 import { AlertCircle } from "lucide-react";
 import AdminLayout from "../layouts/AdminLayout";
 import Typography from "../../../components/ui/Typography";
 import { useDebouncedUrlSearch } from "../../../hooks/useDebouncedUrlSearch";
+import { echo } from "../../../lib/echo";
 import AdminBookingsTable from "../components/AdminBookingsTable";
 import BookingOversightModal from "../components/BookingOversightModal";
 import adminBookingApi from "../services/adminBookingApi";
@@ -34,6 +35,11 @@ export default function AdminBookingsPage() {
   const [isLoadingDetail, setIsLoadingDetail] = useState(false);
   const [errorToast, setErrorToast] = useState(null);
   const [detailBooking, setDetailBooking] = useState(null);
+  const detailBookingIdRef = useRef(null);
+
+  useEffect(() => {
+    detailBookingIdRef.current = detailBooking?.id ?? null;
+  }, [detailBooking?.id]);
 
   useEffect(() => {
     if (!searchParams.has("status") || !searchParams.has("payment_status")) {
@@ -77,6 +83,43 @@ export default function AdminBookingsPage() {
 
   useEffect(() => {
     loadBookings();
+  }, [loadBookings]);
+
+  useEffect(() => {
+    const channel = echo.channel("admin.bookings");
+
+    channel.listen(".booking.updated", async (payload) => {
+      if (!payload?.booking_id) return;
+
+      setBookings((prev) =>
+        prev.map((item) =>
+          item.id === payload.booking_id
+            ? {
+                ...item,
+                status: payload.status || item.status,
+                checked_in_at: payload.checked_in_at ?? item.checked_in_at,
+                cancelled_at: payload.cancelled_at ?? item.cancelled_at,
+                cancel_reason: payload.cancel_reason ?? item.cancel_reason,
+              }
+            : item,
+        ),
+      );
+
+      loadBookings();
+
+      if (detailBookingIdRef.current === payload.booking_id) {
+        try {
+          const res = await adminBookingApi.getBookingDetail(payload.booking_id);
+          if (res?.data) setDetailBooking(res.data);
+        } catch {
+          // Bỏ qua lỗi làm mới modal nền
+        }
+      }
+    });
+
+    return () => {
+      echo.leaveChannel("admin.bookings");
+    };
   }, [loadBookings]);
 
   const handleViewDetail = async (bookingSummary) => {

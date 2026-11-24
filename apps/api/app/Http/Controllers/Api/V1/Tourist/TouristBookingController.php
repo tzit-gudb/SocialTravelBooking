@@ -7,13 +7,15 @@ use App\Http\Requests\Tourist\PreviewBookingRequest;
 use App\Http\Requests\Tourist\StoreBookingRequest;
 use App\Models\Booking;
 use App\Services\BookingService;
+use App\Services\EscrowService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class TouristBookingController extends Controller
 {
     public function __construct(
-        private readonly BookingService $bookingService
+        private readonly BookingService $bookingService,
+        private readonly EscrowService $escrowService
     ) {}
 
     /**
@@ -305,6 +307,29 @@ class TouristBookingController extends Controller
             'success' => true,
             'message' => 'Đã hủy đơn đặt chỗ thành công.',
             'data' => $cancelled,
+        ]);
+    }
+
+    /**
+     * POST /api/v1/tourist/bookings/{id}/confirm-checkin
+     * Du khách tự xác nhận đã nhận dịch vụ -> giải phóng tiền cọc Escrow vào ví Provider.
+     */
+    public function confirmCheckIn(Request $request, int $id): JsonResponse
+    {
+        $booking = Booking::where('id', $id)->where('user_id', $request->user()->id)->first();
+        if (! $booking) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Không tìm thấy đơn đặt chỗ.',
+            ], 404);
+        }
+
+        $result = $this->escrowService->confirmCheckInByTourist($request->user(), $booking);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Đã xác nhận nhận dịch vụ thành công!',
+            'data' => $result['booking'],
         ]);
     }
 }
