@@ -54,6 +54,14 @@ export const bookingService = {
     };
   },
 
+  async confirmCheckIn(bookingId) {
+    const response = await apiClient.post(`/tourist/bookings/${bookingId}/confirm-checkin`, {});
+    return {
+      data: response?.data || null,
+      message: response?.message || "Đã xác nhận nhận dịch vụ thành công.",
+    };
+  },
+
   async cancelGuestBooking(bookingCode, contactPhone, cancelReason = "") {
     const code = encodeURIComponent(
       String(bookingCode || "")

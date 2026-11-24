@@ -15,6 +15,7 @@ import {
   ArrowLeft,
   Building2,
   Calendar,
+  CheckCircle2,
   Clock,
   CreditCard,
   Mail,
@@ -27,6 +28,7 @@ import {
 import AppText from "../../../components/common/AppText";
 import { useAuth } from "../../../hooks/useAuth";
 import { resolveMediaUrl } from "../../../lib/apiClient";
+import { echo } from "../../../lib/echo";
 import { colors, radius, spacing } from "../../../theme/tokens";
 import { formatCurrencyVnd, getServiceTypeLabel } from "../../explore/models/exploreModel";
 import BookingStatusBadge from "../components/BookingStatusBadge";
@@ -50,6 +52,7 @@ export default function BookingDetailScreen({ navigation, route }) {
   const [error, setError] = useState("");
   const [cancelModalVisible, setCancelModalVisible] = useState(false);
   const [cancelling, setCancelling] = useState(false);
+  const [confirmingCheckIn, setConfirmingCheckIn] = useState(false);
   const [remainingSeconds, setRemainingSeconds] = useState(0);
 
   const loadDetail = useCallback(
@@ -89,6 +92,35 @@ export default function BookingDetailScreen({ navigation, route }) {
   useEffect(() => {
     loadDetail(false);
   }, [loadDetail]);
+
+  useEffect(() => {
+    const code = booking?.booking_code;
+    if (!code) return undefined;
+
+    const channelName = `booking.${code}`;
+    const channel = echo.channel(channelName);
+
+    channel.listen(".booking.updated", (payload) => {
+      setBooking((prev) => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          status: payload?.status || prev.status,
+          checked_in_at: payload?.checked_in_at ?? prev.checked_in_at,
+          cancelled_at: payload?.cancelled_at ?? prev.cancelled_at,
+          cancel_reason: payload?.cancel_reason ?? prev.cancel_reason,
+        };
+      });
+
+      if (payload?.action === "confirmed") {
+        loadDetail(true);
+      }
+    });
+
+    return () => {
+      echo.leaveChannel(channelName);
+    };
+  }, [booking?.booking_code, loadDetail]);
 
   useEffect(() => {
     if (booking?.status !== "pending_payment" || !booking?.payment_expires_at) {
@@ -136,6 +168,36 @@ export default function BookingDetailScreen({ navigation, route }) {
     });
   };
 
+  const handleConfirmCheckInPress = () => {
+    if (!booking?.id || confirmingCheckIn) return;
+    Alert.alert(
+      "Xác nhận đã nhận dịch vụ",
+      "Bạn xác nhận đã đến nơi và nhận dịch vụ thành công? Tiền cọc Escrow sẽ được giải ngân cho nhà cung cấp.",
+      [
+        { text: "Chưa", style: "cancel" },
+        {
+          text: "Xác nhận",
+          onPress: async () => {
+            setConfirmingCheckIn(true);
+            try {
+              const result = await bookingService.confirmCheckIn(booking.id);
+              setBooking((prev) => ({
+                ...prev,
+                ...result.data,
+                status: result.data?.status || "checked_in",
+              }));
+              Alert.alert("Thành công", result.message);
+            } catch (err) {
+              Alert.alert("Không thể xác nhận", err?.message || "Vui lòng thử lại sau.");
+            } finally {
+              setConfirmingCheckIn(false);
+            }
+          },
+        },
+      ],
+    );
+  };
+
   const service = booking?.service;
   const coverRaw =
     service?.cover_image ||
@@ -146,6 +208,7 @@ export default function BookingDetailScreen({ navigation, route }) {
   const locationName = service?.location?.name || service?.location_name || "";
   const roomType = booking?.room_type || booking?.roomType;
   const showCancelButton = isAuthenticated && canCancelBooking(booking);
+  const showConfirmCheckInButton = isAuthenticated && booking?.status === "confirmed";
 
   return (
     <SafeAreaView style={styles.safeArea} edges={["top", "bottom"]}>
@@ -437,7 +500,9 @@ export default function BookingDetailScreen({ navigation, route }) {
             </View>
           </ScrollView>
 
-          {(booking.status === "pending_payment" || showCancelButton) && (
+          {(booking.status === "pending_payment" ||
+            showCancelButton ||
+            showConfirmCheckInButton) && (
             <View style={styles.bottomBar}>
               {showCancelButton ? (
                 <Pressable
@@ -445,6 +510,21 @@ export default function BookingDetailScreen({ navigation, route }) {
                   onPress={() => setCancelModalVisible(true)}
                 >
                   <AppText style={styles.cancelOutlineText}>Hủy đơn</AppText>
+                </Pressable>
+              ) : null}
+
+              {showConfirmCheckInButton ? (
+                <Pressable
+                  style={[styles.payBtn, confirmingCheckIn && { opacity: 0.7 }]}
+                  onPress={handleConfirmCheckInPress}
+                  disabled={confirmingCheckIn}
+                >
+                  {confirmingCheckIn ? (
+                    <ActivityIndicator size="small" color="#FFFFFF" />
+                  ) : (
+                    <CheckCircle2 size={17} color="#FFFFFF" />
+                  )}
+                  <AppText style={styles.payBtnText}>Đã nhận dịch vụ</AppText>
                 </Pressable>
               ) : null}
 
