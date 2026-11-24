@@ -54,7 +54,9 @@ class TouristBookingController extends Controller
             return [
                 'id' => $booking->id,
                 'booking_code' => $booking->booking_code,
+                'qr_checkin_token' => $booking->qr_checkin_token,
                 'status' => $booking->status,
+                'checked_in_at' => $booking->checked_in_at?->toIso8601String(),
                 'payment_expires_at' => $booking->payment_expires_at?->toIso8601String(),
                 'start_date' => $booking->start_date?->format('Y-m-d'),
                 'end_date' => $booking->end_date?->format('Y-m-d'),

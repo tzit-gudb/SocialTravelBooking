@@ -15,6 +15,7 @@ import AdminCampaignsPage from "../features/admin/pages/AdminCampaignsPage";
 import AdminReportsPage from "../features/admin/pages/AdminReportsPage";
 import AdminBookingsPage from "../features/admin/pages/AdminBookingsPage";
 import ProviderDashboardPage from "../features/provider/pages/ProviderDashboardPage";
+import ProviderBookingsPage from "../features/provider/pages/ProviderBookingsPage";
 import ProviderProfilePage from "../features/provider/pages/ProviderProfilePage";
 import ServiceManagementPage from "../features/provider/pages/ServiceManagementPage";
 import ProviderCampaignsPage from "../features/provider/pages/ProviderCampaignsPage";
@@ -315,7 +316,17 @@ export default function AppRouter() {
           }
         />
 
-        {/* 3. Bảng điều hành tổng quan */}
+        {/* 3. Đơn đặt chỗ của khách (Provider) */}
+        <Route
+          path="/provider/bookings"
+          element={
+            <ProtectedRoute allowedRoles={["provider", "admin"]}>
+              <ProviderBookingsPage />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* 4. Bảng điều hành tổng quan */}
         <Route
           path="/provider/dashboard"
           element={

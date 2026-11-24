@@ -31,6 +31,7 @@ import { colors, radius, spacing } from "../../../theme/tokens";
 import { formatCurrencyVnd, getServiceTypeLabel } from "../../explore/models/exploreModel";
 import BookingStatusBadge from "../components/BookingStatusBadge";
 import CancelBookingModal from "../components/CancelBookingModal";
+import TouristQrTicketCard from "../../tourist/components/TouristQrTicketCard";
 import {
   canCancelBooking,
   formatBookingDateRange,
@@ -209,6 +210,18 @@ export default function BookingDetailScreen({ navigation, route }) {
                   <AppText style={styles.cancelBannerDesc}>Lý do: {booking.cancel_reason}</AppText>
                 </View>
               </View>
+            ) : null}
+
+            {/* Vé điện tử QR Check-in (chỉ hiển thị khi đơn đã xác nhận / check-in / hoàn thành) */}
+            {["confirmed", "checked_in", "completed"].includes(booking.status) &&
+            booking.qr_checkin_token ? (
+              <TouristQrTicketCard
+                bookingCode={booking.booking_code}
+                serviceName={service?.name}
+                scheduleTime={formatBookingDateRange(booking.start_date, booking.end_date)}
+                qrToken={booking.qr_checkin_token}
+                checkedInAt={booking.checked_in_at}
+              />
             ) : null}
 
             {/* Thông tin dịch vụ */}
