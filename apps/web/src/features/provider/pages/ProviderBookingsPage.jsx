@@ -1,10 +1,11 @@
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { AlertCircle, Eye, Search } from "lucide-react";
 import ProviderLayout from "../layouts/ProviderLayout";
 import Typography from "../../../components/ui/Typography";
 import { Skeleton } from "../../../components/ui/Skeleton";
 import { useDebouncedUrlSearch } from "../../../hooks/useDebouncedUrlSearch";
+import { echo } from "../../../lib/echo";
 import { formatCurrencyVnd } from "../models/serviceFormModel";
 import providerBookingApi from "../services/providerBookingApi";
 import ProviderBookingDetailModal from "../components/ProviderBookingDetailModal";
@@ -55,10 +56,16 @@ export default function ProviderBookingsPage() {
     cancelled: 0,
     refunded: 0,
   });
+  const [providerId, setProviderId] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState("");
   const [detailBooking, setDetailBooking] = useState(null);
   const [isLoadingDetail, setIsLoadingDetail] = useState(false);
+  const detailBookingIdRef = useRef(null);
+
+  useEffect(() => {
+    detailBookingIdRef.current = detailBooking?.id ?? null;
+  }, [detailBooking?.id]);
 
   const loadBookings = useCallback(async () => {
     setIsLoading(true);
@@ -68,6 +75,7 @@ export default function ProviderBookingsPage() {
         status: statusFilter,
         q: searchQuery,
       });
+      if (res?.provider_id) setProviderId(res.provider_id);
       setBookings(Array.isArray(res?.data) ? res.data : []);
       if (res?.counts) setCounts(res.counts);
     } catch (err) {
@@ -80,6 +88,46 @@ export default function ProviderBookingsPage() {
   useEffect(() => {
     loadBookings();
   }, [loadBookings]);
+
+  useEffect(() => {
+    if (!providerId) return undefined;
+
+    const channelName = `provider.${providerId}.bookings`;
+    const channel = echo.channel(channelName);
+
+    channel.listen(".booking.updated", async (payload) => {
+      if (!payload?.booking_id) return;
+
+      setBookings((prev) =>
+        prev.map((item) =>
+          item.id === payload.booking_id
+            ? {
+                ...item,
+                status: payload.status || item.status,
+                checked_in_at: payload.checked_in_at ?? item.checked_in_at,
+                cancelled_at: payload.cancelled_at ?? item.cancelled_at,
+                cancel_reason: payload.cancel_reason ?? item.cancel_reason,
+              }
+            : item,
+        ),
+      );
+
+      loadBookings();
+
+      if (detailBookingIdRef.current === payload.booking_id) {
+        try {
+          const res = await providerBookingApi.getBookingDetail(payload.booking_id);
+          if (res?.data) setDetailBooking(res.data);
+        } catch {
+          // Bỏ qua lỗi làm mới modal nền
+        }
+      }
+    });
+
+    return () => {
+      echo.leaveChannel(channelName);
+    };
+  }, [providerId, loadBookings]);
 
   const handleStatusChange = (nextStatus) => {
     setSearchParams((prev) => {

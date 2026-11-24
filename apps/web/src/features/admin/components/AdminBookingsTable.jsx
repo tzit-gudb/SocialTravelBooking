@@ -41,6 +41,12 @@ const PAYMENT_STATUS_LABELS = {
   refunded: "Đã hoàn tiền",
 };
 
+function formatDateVi(iso) {
+  if (!iso) return "--";
+  const parts = String(iso).slice(0, 10).split("-");
+  return parts.length === 3 ? `${parts[2]}/${parts[1]}/${parts[0]}` : String(iso);
+}
+
 /**
  * Bảng giám sát Đơn đặt chỗ & Đối soát — đồng bộ chuẩn UI Admin.
  */
@@ -124,7 +130,7 @@ export default function AdminBookingsTable({
             <tr className="bg-slate-50/80 border-b border-border-subtle text-[11px] font-bold uppercase tracking-wider text-ink-subtle">
               <th className="py-3 px-4 sm:px-6">Mã đơn / Ngày sử dụng</th>
               <th className="py-3 px-4">Khách hàng</th>
-              <th className="py-3 px-4">Dịch vụ / Đối tác</th>
+              <th className="py-3 px-4">Dịch vụ / Nhà cung cấp dịch vụ</th>
               <th className="py-3 px-4">Tổng tiền & Thanh toán</th>
               <th className="py-3 px-4">Trạng thái đơn</th>
               <th className="py-3 px-4 sm:px-6 text-right">Thao tác</th>
@@ -187,7 +193,10 @@ export default function AdminBookingsTable({
                         {b.booking_code}
                       </span>
                       <span className="text-xs text-ink-subtle block mt-0.5">
-                        Nhận chỗ: {b.check_in_date || "--"}
+                        Sử dụng: {formatDateVi(b.start_date)}
+                        {b.end_date && b.end_date !== b.start_date
+                          ? ` → ${formatDateVi(b.end_date)}`
+                          : ""}
                       </span>
                     </td>
 
