@@ -2,9 +2,10 @@ export const BOOKING_STATUS_FILTERS = [
   { id: "all", label: "Tất cả" },
   { id: "pending_payment", label: "Chờ thanh toán" },
   { id: "confirmed", label: "Đã xác nhận" },
+  { id: "checked_in", label: "Đã check-in" },
   { id: "completed", label: "Hoàn thành" },
   { id: "cancelled", label: "Đã hủy" },
-  { id: "expired", label: "Hết hạn" },
+  { id: "refunded", label: "Đã hoàn tiền" },
 ];
 
 export const BOOKING_STATUS_CONFIG = {
@@ -20,6 +21,12 @@ export const BOOKING_STATUS_CONFIG = {
     text: "#0369A1",
     border: "#BAE6FD",
   },
+  checked_in: {
+    label: "Đã check-in",
+    bg: "#CCFBF1",
+    text: "#0F766E",
+    border: "#99F6E4",
+  },
   completed: {
     label: "Hoàn thành",
     bg: "#D1FAE5",
@@ -31,12 +38,6 @@ export const BOOKING_STATUS_CONFIG = {
     bg: "#FFE4E6",
     text: "#BE123C",
     border: "#FECDD3",
-  },
-  expired: {
-    label: "Hết hạn giữ chỗ",
-    bg: "#F1F5F9",
-    text: "#475569",
-    border: "#CBD5E1",
   },
   refunded: {
     label: "Đã hoàn tiền",

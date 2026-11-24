@@ -17,6 +17,7 @@ import {
   useExploreData,
 } from "./src/features/explore/context/ExploreDataContext";
 import { SearchFilterProvider } from "./src/context/SearchFilterContext";
+import { PendingBookingProvider } from "./src/context/PendingBookingContext";
 import RootNavigator from "./src/navigation/RootNavigator";
 import SplashScreen from "./src/features/splash/screens/SplashScreen";
 import { colors } from "./src/theme/tokens";
@@ -59,7 +60,9 @@ export default function App() {
       <AuthProvider>
         <ExploreDataProvider>
           <SearchFilterProvider>
-            <AppBootstrapShell fontsLoaded={fontsLoaded} />
+            <PendingBookingProvider>
+              <AppBootstrapShell fontsLoaded={fontsLoaded} />
+            </PendingBookingProvider>
           </SearchFilterProvider>
         </ExploreDataProvider>
       </AuthProvider>

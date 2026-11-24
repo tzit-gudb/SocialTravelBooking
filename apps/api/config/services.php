@@ -35,4 +35,12 @@ return [
         ],
     ],
 
+    'sepay' => [
+        'bank_code' => env('SEPAY_BANK_CODE', 'TPBank'),
+        'account_number' => env('SEPAY_ACCOUNT_NUMBER', ''),
+        'account_name' => env('SEPAY_ACCOUNT_NAME', 'SOCIAL TRAVEL BOOKING'),
+        'qr_base_url' => env('SEPAY_QR_BASE_URL', 'https://qr.sepay.vn/img'),
+        'webhook_token' => env('SEPAY_WEBHOOK_TOKEN', ''),
+    ],
+
 ];

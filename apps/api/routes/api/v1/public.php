@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\V1\Public\CatalogController;
 use App\Http\Controllers\Api\V1\Public\PublicPostController;
 use App\Http\Controllers\Api\V1\Public\PublicServiceController;
 use App\Http\Controllers\Api\V1\Tourist\TouristBookingController;
+use App\Http\Controllers\Api\V1\Tourist\TouristPaymentController;
 use Illuminate\Support\Facades\Route;
 
 // Public & authentication routes: /api/v1/...
@@ -57,8 +58,11 @@ Route::prefix('public')->group(function () {
     // Bài đăng cộng đồng nổi bật (Task #19)
     Route::get('/posts/featured', [PublicPostController::class, 'featured']);
 
-    // Đặt chỗ & Tra cứu không cần đăng nhập (Guest Checkout - Task #22)
+    // Đặt chỗ & Tra cứu không cần đăng nhập (Guest Checkout - Task #22 & #25)
     Route::post('/bookings/preview', [TouristBookingController::class, 'preview']);
     Route::post('/bookings', [TouristBookingController::class, 'store']);
     Route::get('/bookings/{bookingCode}', [TouristBookingController::class, 'lookupByCode']);
+    Route::post('/bookings/{bookingCode}/cancel', [TouristBookingController::class, 'cancelByCode']);
+    Route::post('/bookings/{bookingCode}/payment/sepay', [TouristPaymentController::class, 'createGuestSepayQr']);
+    Route::get('/bookings/{bookingCode}/payment/status', [TouristPaymentController::class, 'guestPaymentStatus']);
 });

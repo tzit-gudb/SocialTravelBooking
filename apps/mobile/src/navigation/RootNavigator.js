@@ -10,6 +10,8 @@ import HolidayCampaignsScreen from "../features/explore/screens/HolidayCampaigns
 import RoomTypeDetailScreen from "../features/explore/screens/RoomTypeDetailScreen";
 import BookingCheckoutScreen from "../features/booking/screens/BookingCheckoutScreen";
 import BookingDetailScreen from "../features/booking/screens/BookingDetailScreen";
+import SepayPaymentScreen from "../features/booking/screens/SepayPaymentScreen";
+import ProfileScreen from "../features/tourist/screens/ProfileScreen";
 import ToursScreen from "../features/tour/screens/ToursScreen";
 import DetailScreen from "../features/tour/screens/DetailScreen";
 
@@ -64,6 +66,12 @@ export default function RootNavigator() {
         component={BookingDetailScreen}
         options={{ headerShown: false }}
       />
+      <Stack.Screen
+        name="SepayPayment"
+        component={SepayPaymentScreen}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen name="Profile" component={ProfileScreen} options={{ headerShown: false }} />
       <Stack.Screen name="Auth" component={AuthScreen} />
     </Stack.Navigator>
   );

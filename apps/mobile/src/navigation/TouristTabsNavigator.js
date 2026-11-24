@@ -9,6 +9,7 @@ import ExploreHomeScreen from "../features/explore/screens/ExploreHomeScreen";
 import SocialFeedScreen from "../features/explore/screens/SocialFeedScreen";
 import BookingsTabScreen from "../features/tourist/screens/BookingsTabScreen";
 import AccountTabScreen from "../features/tourist/screens/AccountTabScreen";
+import FloatingPendingBookingBanner from "../features/booking/components/FloatingPendingBookingBanner";
 
 const Tab = createBottomTabNavigator();
 
@@ -85,18 +86,21 @@ function LiquidGlassTabBar({ state, descriptors, navigation }) {
 
 export default function TouristTabsNavigator() {
   return (
-    <Tab.Navigator
-      initialRouteName="SearchTab"
-      tabBar={(props) => <LiquidGlassTabBar {...props} />}
-      screenOptions={{
-        headerShown: false,
-      }}
-    >
-      <Tab.Screen name="SearchTab" component={ExploreHomeScreen} />
-      <Tab.Screen name="DiscoverTab" component={SocialFeedScreen} />
-      <Tab.Screen name="BookingsTab" component={BookingsTabScreen} />
-      <Tab.Screen name="AccountTab" component={AccountTabScreen} />
-    </Tab.Navigator>
+    <View style={{ flex: 1 }}>
+      <Tab.Navigator
+        initialRouteName="SearchTab"
+        tabBar={(props) => <LiquidGlassTabBar {...props} />}
+        screenOptions={{
+          headerShown: false,
+        }}
+      >
+        <Tab.Screen name="SearchTab" component={ExploreHomeScreen} />
+        <Tab.Screen name="DiscoverTab" component={SocialFeedScreen} />
+        <Tab.Screen name="BookingsTab" component={BookingsTabScreen} />
+        <Tab.Screen name="AccountTab" component={AccountTabScreen} />
+      </Tab.Navigator>
+      <FloatingPendingBookingBanner />
+    </View>
   );
 }
 

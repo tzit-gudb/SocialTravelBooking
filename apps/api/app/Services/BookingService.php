@@ -290,9 +290,9 @@ class BookingService
     /**
      * Hủy đơn đặt chỗ và hoàn trả lại slot đã giữ trong service_availability.
      */
-    public function cancelBooking(User $user, Booking $booking, ?string $reason = null): Booking
+    public function cancelBooking(?User $user, Booking $booking, ?string $reason = null, bool $isGuestVerified = false): Booking
     {
-        if ((int) $booking->user_id !== (int) $user->id) {
+        if (! $isGuestVerified && (! $user || (int) $booking->user_id !== (int) $user->id)) {
             abort(403, 'Bạn không có quyền hủy đơn đặt chỗ này.');
         }
 

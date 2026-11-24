@@ -11,7 +11,17 @@ import {
   TextInput,
   View,
 } from "react-native";
-import { AlertCircle, Calendar, CheckCircle, X } from "lucide-react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { StatusBar } from "expo-status-bar";
+import {
+  AlertCircle,
+  ArrowLeft,
+  Calendar,
+  CheckCircle,
+  Mail,
+  ShieldCheck,
+  X,
+} from "lucide-react-native";
 import AppText from "../../../components/common/AppText";
 import { colors, radius, spacing, touchTarget } from "../../../theme/tokens";
 import { useAuth } from "../../../hooks/useAuth";
@@ -48,8 +58,8 @@ function parseIsoParts(isoDate) {
   return { year: 2000, month: 1, day: 1 };
 }
 
-export default function ProfileScreen() {
-  const { user, updateUser, logout } = useAuth();
+export default function ProfileScreen({ navigation }) {
+  const { user, updateUser } = useAuth();
   const initialProfile = transformTouristData(user || {});
 
   const [formData, setFormData] = useState(() => ({
@@ -120,7 +130,7 @@ export default function ProfileScreen() {
   const displayEmail = user?.email || initialProfile.email || "Chưa cập nhật email";
   const roleLabel =
     (user?.role || initialProfile.role || "tourist").toLowerCase() === "tourist"
-      ? "Khách du lịch (Tourist)"
+      ? "Khách du lịch"
       : String(user?.role || initialProfile.role);
 
   const clearFieldError = (field) => {
@@ -248,245 +258,230 @@ export default function ProfileScreen() {
   };
 
   return (
-    <KeyboardAvoidingView
-      style={styles.flex}
-      behavior={Platform.OS === "ios" ? "padding" : undefined}
-    >
-      <ScrollView
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
-        keyboardShouldPersistTaps="handled"
+    <SafeAreaView style={styles.safeArea} edges={["top", "bottom"]}>
+      <StatusBar style="dark" />
+      <View style={styles.navHeader}>
+        <Pressable
+          onPress={() => navigation?.goBack?.()}
+          style={styles.navBackBtn}
+          accessibilityLabel="Quay lại"
+        >
+          <ArrowLeft size={20} color={colors.inkPrimary} />
+        </Pressable>
+        <View style={{ flex: 1 }}>
+          <AppText style={styles.navTitle}>Chỉnh sửa thông tin cá nhân</AppText>
+          <AppText style={styles.navSub}>Cập nhật hồ sơ du khách của bạn</AppText>
+        </View>
+      </View>
+
+      <KeyboardAvoidingView
+        style={styles.flex}
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
       >
-        {/* 1. Thẻ tổng quan Hồ sơ & thông tin Read-only */}
-        <View style={styles.card}>
-          <View style={styles.headerRow}>
+        <ScrollView
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+        >
+          {/* 1. Hero Avatar & Thông tin tài khoản */}
+          <View style={styles.heroCard}>
             {avatarUrl ? (
-              <Image source={{ uri: avatarUrl }} style={styles.avatarImage} />
+              <Image source={{ uri: avatarUrl }} style={styles.heroAvatarImage} />
             ) : (
-              <View style={styles.avatarFallback}>
-                <AppText variant="h2" style={styles.avatarInitial}>
-                  {avatarInitial}
-                </AppText>
+              <View style={styles.heroAvatarFallback}>
+                <AppText style={styles.heroAvatarInitial}>{avatarInitial}</AppText>
               </View>
             )}
-
-            <View style={styles.headerMeta}>
-              <AppText variant="h2" numberOfLines={1}>
-                {displayName}
-              </AppText>
-              <View style={styles.roleBadge}>
-                <AppText variant="caption" style={styles.roleBadgeText}>
-                  {roleLabel}
-                </AppText>
-              </View>
-            </View>
-          </View>
-
-          <View style={styles.readOnlyBox}>
-            <View style={styles.readOnlyRow}>
-              <AppText variant="caption" style={styles.readOnlyLabel}>
-                Email tài khoản
-              </AppText>
-              <AppText variant="bodySmall" style={styles.readOnlyValue} numberOfLines={1}>
+            <AppText style={styles.heroName} numberOfLines={1}>
+              {displayName}
+            </AppText>
+            <View style={styles.heroMetaRow}>
+              <Mail size={13} color={colors.inkMuted} />
+              <AppText style={styles.heroEmail} numberOfLines={1}>
                 {displayEmail}
               </AppText>
             </View>
-            <View style={styles.readOnlyDivider} />
-            <View style={styles.readOnlyRow}>
-              <AppText variant="caption" style={styles.readOnlyLabel}>
-                Vai trò
-              </AppText>
-              <AppText variant="bodySmall" style={styles.readOnlyValue}>
-                {roleLabel}
-              </AppText>
+            <View style={styles.roleBadge}>
+              <AppText style={styles.roleBadgeText}>{roleLabel}</AppText>
             </View>
           </View>
-        </View>
 
-        {/* 2. Thông báo phản hồi */}
-        {feedback ? (
-          <View
-            style={[
-              styles.feedbackBanner,
-              feedback.type === "success" ? styles.feedbackSuccess : styles.feedbackError,
-            ]}
-          >
-            {feedback.type === "success" ? (
-              <CheckCircle size={18} color={colors.statusSuccess} />
-            ) : (
-              <AlertCircle size={18} color={colors.statusDanger} />
-            )}
-            <AppText
-              variant="bodySmall"
+          {/* 2. Thông báo phản hồi */}
+          {feedback ? (
+            <View
               style={[
-                styles.feedbackText,
-                feedback.type === "success" ? styles.feedbackTextSuccess : styles.feedbackTextError,
+                styles.feedbackBanner,
+                feedback.type === "success" ? styles.feedbackSuccess : styles.feedbackError,
               ]}
             >
-              {feedback.message}
-            </AppText>
-          </View>
-        ) : null}
-
-        {/* 3. Biểu mẫu cập nhật thông tin cá nhân */}
-        <View style={styles.card}>
-          <AppText variant="h3" style={styles.sectionTitle}>
-            Thông tin cá nhân
-          </AppText>
-
-          {/* Họ và tên */}
-          <View style={styles.inputGroup}>
-            <AppText variant="label" style={styles.label}>
-              Họ và tên
-            </AppText>
-            <TextInput
-              style={[styles.input, fieldErrors.name ? styles.inputError : null]}
-              value={formData.name}
-              onChangeText={(value) => {
-                setFormData((prev) => ({ ...prev, name: value }));
-                clearFieldError("name");
-              }}
-              placeholder="Nhập họ và tên"
-              placeholderTextColor={colors.inkSubtle}
-              maxLength={255}
-              editable={!isSaving}
-            />
-            {fieldErrors.name ? (
-              <AppText variant="caption" style={styles.errorText}>
-                {fieldErrors.name}
-              </AppText>
-            ) : null}
-          </View>
-
-          {/* Số điện thoại */}
-          <View style={styles.inputGroup}>
-            <AppText variant="label" style={styles.label}>
-              Số điện thoại
-            </AppText>
-            <TextInput
-              style={[styles.input, fieldErrors.phone_number ? styles.inputError : null]}
-              value={formData.phone_number}
-              onChangeText={(value) => {
-                setFormData((prev) => ({ ...prev, phone_number: value }));
-                clearFieldError("phone_number");
-              }}
-              placeholder="0901234567"
-              placeholderTextColor={colors.inkSubtle}
-              keyboardType="phone-pad"
-              maxLength={10}
-              editable={!isSaving}
-            />
-            {fieldErrors.phone_number ? (
-              <AppText variant="caption" style={styles.errorText}>
-                {fieldErrors.phone_number}
-              </AppText>
-            ) : null}
-          </View>
-
-          {/* Giới tính */}
-          <View style={styles.inputGroup}>
-            <AppText variant="label" style={styles.label}>
-              Giới tính
-            </AppText>
-            <View style={styles.genderRow}>
-              {GENDER_OPTIONS.map((option) => {
-                const isSelected = formData.gender === option.value;
-                return (
-                  <Pressable
-                    key={option.value}
-                    disabled={isSaving}
-                    onPress={() => {
-                      setFormData((prev) => ({ ...prev, gender: option.value }));
-                      clearFieldError("gender");
-                    }}
-                    style={({ pressed }) => [
-                      styles.genderPill,
-                      isSelected && styles.genderPillActive,
-                      pressed && styles.pressedOpacity,
-                    ]}
-                  >
-                    <AppText
-                      variant="label"
-                      style={[styles.genderPillText, isSelected && styles.genderPillTextActive]}
-                    >
-                      {option.label}
-                    </AppText>
-                  </Pressable>
-                );
-              })}
-            </View>
-            {fieldErrors.gender ? (
-              <AppText variant="caption" style={styles.errorText}>
-                {fieldErrors.gender}
-              </AppText>
-            ) : null}
-          </View>
-
-          {/* Ngày sinh */}
-          <View style={styles.inputGroup}>
-            <AppText variant="label" style={styles.label}>
-              Ngày sinh
-            </AppText>
-            <Pressable
-              disabled={isSaving}
-              onPress={openDateModal}
-              style={({ pressed }) => [
-                styles.dateButton,
-                fieldErrors.date_of_birth ? styles.inputError : null,
-                pressed && styles.pressedOpacity,
-              ]}
-            >
-              <Calendar size={18} color={colors.inkSubtle} />
+              {feedback.type === "success" ? (
+                <CheckCircle size={18} color={colors.statusSuccess} />
+              ) : (
+                <AlertCircle size={18} color={colors.statusDanger} />
+              )}
               <AppText
                 variant="bodySmall"
                 style={[
-                  styles.dateButtonText,
-                  !formData.date_of_birth && styles.datePlaceholderText,
+                  styles.feedbackText,
+                  feedback.type === "success"
+                    ? styles.feedbackTextSuccess
+                    : styles.feedbackTextError,
                 ]}
               >
-                {formData.date_of_birth
-                  ? formatDateDisplay(formData.date_of_birth)
-                  : "Chọn ngày sinh (DD/MM/YYYY)"}
+                {feedback.message}
               </AppText>
+            </View>
+          ) : null}
+
+          {/* 3. Biểu mẫu cập nhật thông tin cá nhân */}
+          <View style={styles.card}>
+            <AppText variant="h3" style={styles.sectionTitle}>
+              Thông tin cá nhân
+            </AppText>
+
+            {/* Họ và tên */}
+            <View style={styles.inputGroup}>
+              <AppText variant="label" style={styles.label}>
+                Họ và tên
+              </AppText>
+              <TextInput
+                style={[styles.input, fieldErrors.name ? styles.inputError : null]}
+                value={formData.name}
+                onChangeText={(value) => {
+                  setFormData((prev) => ({ ...prev, name: value }));
+                  clearFieldError("name");
+                }}
+                placeholder="Nhập họ và tên"
+                placeholderTextColor={colors.inkSubtle}
+                maxLength={255}
+                editable={!isSaving}
+              />
+              {fieldErrors.name ? (
+                <AppText variant="caption" style={styles.errorText}>
+                  {fieldErrors.name}
+                </AppText>
+              ) : null}
+            </View>
+
+            {/* Số điện thoại */}
+            <View style={styles.inputGroup}>
+              <AppText variant="label" style={styles.label}>
+                Số điện thoại
+              </AppText>
+              <TextInput
+                style={[styles.input, fieldErrors.phone_number ? styles.inputError : null]}
+                value={formData.phone_number}
+                onChangeText={(value) => {
+                  setFormData((prev) => ({ ...prev, phone_number: value }));
+                  clearFieldError("phone_number");
+                }}
+                placeholder="0901234567"
+                placeholderTextColor={colors.inkSubtle}
+                keyboardType="phone-pad"
+                maxLength={10}
+                editable={!isSaving}
+              />
+              {fieldErrors.phone_number ? (
+                <AppText variant="caption" style={styles.errorText}>
+                  {fieldErrors.phone_number}
+                </AppText>
+              ) : null}
+            </View>
+
+            {/* Giới tính */}
+            <View style={styles.inputGroup}>
+              <AppText variant="label" style={styles.label}>
+                Giới tính
+              </AppText>
+              <View style={styles.genderRow}>
+                {GENDER_OPTIONS.map((option) => {
+                  const isSelected = formData.gender === option.value;
+                  return (
+                    <Pressable
+                      key={option.value}
+                      disabled={isSaving}
+                      onPress={() => {
+                        setFormData((prev) => ({ ...prev, gender: option.value }));
+                        clearFieldError("gender");
+                      }}
+                      style={({ pressed }) => [
+                        styles.genderPill,
+                        isSelected && styles.genderPillActive,
+                        pressed && styles.pressedOpacity,
+                      ]}
+                    >
+                      <AppText
+                        variant="label"
+                        style={[styles.genderPillText, isSelected && styles.genderPillTextActive]}
+                      >
+                        {option.label}
+                      </AppText>
+                    </Pressable>
+                  );
+                })}
+              </View>
+              {fieldErrors.gender ? (
+                <AppText variant="caption" style={styles.errorText}>
+                  {fieldErrors.gender}
+                </AppText>
+              ) : null}
+            </View>
+
+            {/* Ngày sinh */}
+            <View style={styles.inputGroup}>
+              <AppText variant="label" style={styles.label}>
+                Ngày sinh
+              </AppText>
+              <Pressable
+                disabled={isSaving}
+                onPress={openDateModal}
+                style={({ pressed }) => [
+                  styles.dateButton,
+                  fieldErrors.date_of_birth ? styles.inputError : null,
+                  pressed && styles.pressedOpacity,
+                ]}
+              >
+                <Calendar size={18} color={colors.inkSubtle} />
+                <AppText
+                  variant="bodySmall"
+                  style={[
+                    styles.dateButtonText,
+                    !formData.date_of_birth && styles.datePlaceholderText,
+                  ]}
+                >
+                  {formData.date_of_birth
+                    ? formatDateDisplay(formData.date_of_birth)
+                    : "Chọn ngày sinh (DD/MM/YYYY)"}
+                </AppText>
+              </Pressable>
+              {fieldErrors.date_of_birth ? (
+                <AppText variant="caption" style={styles.errorText}>
+                  {fieldErrors.date_of_birth}
+                </AppText>
+              ) : null}
+            </View>
+
+            {/* Nút Lưu thay đổi */}
+            <Pressable
+              disabled={isSaving}
+              onPress={handleSave}
+              style={({ pressed }) => [
+                styles.saveButton,
+                pressed && styles.pressedOpacity,
+                isSaving && styles.saveButtonDisabled,
+              ]}
+            >
+              {isSaving ? (
+                <ActivityIndicator size="small" color="#FFFFFF" />
+              ) : (
+                <AppText variant="label" style={styles.saveButtonText}>
+                  Lưu thay đổi
+                </AppText>
+              )}
             </Pressable>
-            {fieldErrors.date_of_birth ? (
-              <AppText variant="caption" style={styles.errorText}>
-                {fieldErrors.date_of_birth}
-              </AppText>
-            ) : null}
           </View>
-
-          {/* Nút Lưu thay đổi */}
-          <Pressable
-            disabled={isSaving}
-            onPress={handleSave}
-            style={({ pressed }) => [
-              styles.saveButton,
-              pressed && styles.pressedOpacity,
-              isSaving && styles.saveButtonDisabled,
-            ]}
-          >
-            {isSaving ? (
-              <ActivityIndicator size="small" color="#FFFFFF" />
-            ) : (
-              <AppText variant="label" style={styles.saveButtonText}>
-                Lưu thay đổi
-              </AppText>
-            )}
-          </Pressable>
-        </View>
-
-        {/* 4. Nút Đăng xuất */}
-        <Pressable
-          disabled={isSaving}
-          onPress={logout}
-          style={({ pressed }) => [styles.logoutButton, pressed && styles.pressedOpacity]}
-        >
-          <AppText variant="label" style={styles.logoutButtonText}>
-            Đăng xuất
-          </AppText>
-        </Pressable>
-      </ScrollView>
+        </ScrollView>
+      </KeyboardAvoidingView>
 
       {/* Modal chọn Ngày/Tháng/Năm (RN thuần, không cần native dependency) */}
       <Modal
@@ -623,18 +618,98 @@ export default function ProfileScreen() {
           </View>
         </View>
       </Modal>
-    </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: "#FFFFFF",
+  },
+  navHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    paddingHorizontal: spacing.md,
+    paddingVertical: 12,
+    backgroundColor: "#FFFFFF",
+    borderBottomWidth: 1,
+    borderBottomColor: "#E2E8F0",
+  },
+  navBackBtn: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: "#F1F5F9",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  navTitle: {
+    fontSize: 16.5,
+    fontWeight: "700",
+    color: colors.inkPrimary,
+  },
+  navSub: {
+    fontSize: 12,
+    color: colors.inkMuted,
+    marginTop: 1,
+  },
   flex: {
     flex: 1,
+    backgroundColor: colors.surfaceBase,
   },
   scrollContent: {
-    padding: spacing.lg,
-    paddingBottom: 120,
+    padding: spacing.md,
+    paddingBottom: 40,
     gap: spacing.base,
+  },
+  heroCard: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+    padding: spacing.lg,
+    alignItems: "center",
+    gap: 6,
+  },
+  heroAvatarImage: {
+    width: 78,
+    height: 78,
+    borderRadius: 39,
+    borderWidth: 2,
+    borderColor: "#BAE6FD",
+    backgroundColor: "#E0F2FE",
+  },
+  heroAvatarFallback: {
+    width: 78,
+    height: 78,
+    borderRadius: 39,
+    backgroundColor: "#E0F2FE",
+    borderWidth: 2,
+    borderColor: "#BAE6FD",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  heroAvatarInitial: {
+    fontSize: 28,
+    fontWeight: "700",
+    color: colors.brandPrimary,
+  },
+  heroName: {
+    fontSize: 18,
+    fontWeight: "700",
+    color: colors.inkPrimary,
+    marginTop: 4,
+  },
+  heroMetaRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+  },
+  heroEmail: {
+    fontSize: 13,
+    color: colors.inkMuted,
   },
   card: {
     backgroundColor: colors.surfaceElevated,
@@ -672,7 +747,7 @@ const styles = StyleSheet.create({
     gap: spacing.xs,
   },
   roleBadge: {
-    alignSelf: "flex-start",
+    alignSelf: "center",
     backgroundColor: colors.brandSubtle,
     borderWidth: 1,
     borderColor: colors.brandLight,

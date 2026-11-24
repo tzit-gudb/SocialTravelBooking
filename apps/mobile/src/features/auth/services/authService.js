@@ -28,7 +28,9 @@ export const authService = {
         idToken = await firebaseUser.getIdToken();
       }
     } catch (fbError) {
-      console.warn("[Mobile Auth] Firebase sign-in notice:", fbError.code || fbError.message);
+      if (fbError?.code !== "auth/invalid-credential") {
+        console.warn("[Mobile Auth] Firebase sign-in notice:", fbError.code || fbError.message);
+      }
     }
 
     let response;

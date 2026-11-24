@@ -124,12 +124,15 @@ export default function BookingDetailScreen({ navigation, route }) {
   };
 
   const handlePayDepositPress = () => {
-    Alert.alert(
-      "Cổng thanh toán Sepay",
-      `Mã đơn ${booking?.booking_code} đang chờ thanh toán cọc ${formatCurrencyVnd(
-        booking?.deposit_amount,
-      )}. Tính năng tạo QR thanh toán Sepay sẽ được mở ở bước tiếp theo.`,
-    );
+    if (!booking) return;
+    navigation.navigate("SepayPayment", {
+      bookingId: booking.id,
+      bookingCode: booking.booking_code,
+      contactPhone: booking.contact_phone || contactPhone || "",
+      serviceName: booking.service?.name || "Đơn đặt chỗ của bạn",
+      depositAmount: booking.deposit_amount,
+      paymentExpiresAt: booking.payment_expires_at,
+    });
   };
 
   const service = booking?.service;

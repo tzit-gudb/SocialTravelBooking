@@ -107,7 +107,7 @@ function resolveFriendlyErrorMessage(status, payload) {
 }
 
 async function request(endpoint, options = {}) {
-  const { method = "GET", body, headers = {}, token } = options;
+  const { method = "GET", body, headers = {}, token, signal } = options;
 
   const activeToken = token || mobileSessionStore.getToken();
 
@@ -132,8 +132,12 @@ async function request(endpoint, options = {}) {
       method,
       headers: requestHeaders,
       body: body ? JSON.stringify(body) : undefined,
+      signal,
     });
   } catch (netErr) {
+    if (netErr?.name === "AbortError") {
+      throw netErr;
+    }
     // In chi tiết lỗi kỹ thuật và endpoint ra terminal Metro / log cho lập trình viên
     console.error(`[Mobile API Network Error] ${method} ${url}:`, netErr);
 

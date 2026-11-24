@@ -79,6 +79,12 @@ To execute this design vision, apply these strict technical constraints across b
 
 **Unified Design Tokens:** Never hardcode HEX/RGB colors, static pixel sizes, or raw font names in individual components. Define a shared semantic token system. On the web, extend `tailwind.config.js` with semantic names (e.g., `bg-surface-base`, `text-body-subtle`). On React Native, map these exact same tokens using a Theme provider or NativeWind to ensure the visual DNA remains identical across platforms.
 
+**Skeleton-First Loading States:** For all list, feed, and detail screens (both Web and Mobile), always render structural **Skeleton** placeholders that mirror the final card/layout geometry during initial data fetching—never show a bare centered spinner (`ActivityIndicator` or generic loading text) for page-level loads.
+
+- **Mobile (`apps/mobile`):** Reuse `apps/mobile/src/components/common/Skeleton.js` (`Animated` pulse) matching card dimensions, image thumbnails, and text rows.
+- **Web (`apps/web`):** Reuse `apps/web/src/components/ui/Skeleton.jsx` matching table rows, cards, or detail panels.
+- Reserve inline spinners (`ActivityIndicator` / `Loader2`) strictly for button-level submit/action states or infinite-scroll footer indicators.
+
 **Tailwind Discipline (Web):** Avoid the generic AI tell of slapping `shadow-md rounded-xl bg-white` on every container. Delineate sections using intentional background contrast or subtle borders instead. Control component variants strictly using `cva` (Class Variance Authority) combined with `clsx` and `tailwind-merge` to prevent utility-class spaghetti and maintain a disciplined visual hierarchy.
 
 **Mobile Ergonomics (React Native):** Design for human hands. Every interactive element must meet a minimum `44x44pt` touch target. Respect `SafeAreaView` boundaries completely rather than guessing margins and paddings for notches or home indicators.

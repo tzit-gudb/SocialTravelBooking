@@ -1,13 +1,15 @@
 ﻿import React from "react";
-import { Alert, Pressable, ScrollView, StyleSheet, View } from "react-native";
+import { Alert, Image, Pressable, ScrollView, StyleSheet, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import { useIsFocused } from "@react-navigation/native";
 import {
   Bug,
   ChevronRight,
+  Edit3,
   Heart,
   HelpCircle,
+  LogOut,
   Shield,
   Sliders,
   Tag,
@@ -17,7 +19,6 @@ import {
 import AppText from "../../../components/common/AppText";
 import { colors, radius, spacing, touchTarget } from "../../../theme/tokens";
 import { useAuth } from "../../../hooks/useAuth";
-import ProfileScreen from "./ProfileScreen";
 
 function MenuRow({ icon: IconComp, label, subtitle, onPress, isLast = false }) {
   return (
@@ -43,22 +44,14 @@ function MenuRow({ icon: IconComp, label, subtitle, onPress, isLast = false }) {
 }
 
 /**
- * Tab "Cá nhân":
- * - Nếu người dùng đã đăng nhập (role === 'tourist'): hiển thị ProfileScreen đầy đủ
- * - Nếu chưa đăng nhập (Guest): khuyến khích Đăng nhập / Đăng ký + các mục tiện ích, cài đặt, trợ giúp
+ * Tab "Cá nhân" (Màn hình Cài đặt & Tài khoản):
+ * - Luôn hiển thị đầy đủ các mục Cài đặt, Tiện ích & Trợ giúp cho cả Khách và Thành viên.
+ * - Khi đã đăng nhập: hiển thị thẻ hồ sơ, nút "Chỉnh sửa thông tin cá nhân" (mở ProfileScreen) và nút "Đăng xuất".
+ * - Khi chưa đăng nhập: khuyến khích Đăng nhập / Đăng ký.
  */
 export default function AccountTabScreen({ navigation }) {
   const isFocused = useIsFocused();
-  const { isAuthenticated, role } = useAuth();
-
-  if (isAuthenticated && role === "tourist") {
-    return (
-      <SafeAreaView style={styles.safeArea} edges={["top"]}>
-        {isFocused ? <StatusBar style="dark" /> : null}
-        <ProfileScreen />
-      </SafeAreaView>
-    );
-  }
+  const { isAuthenticated, user, logout } = useAuth();
 
   const promptLoginForFeature = (title) => {
     Alert.alert(
@@ -78,41 +71,97 @@ export default function AccountTabScreen({ navigation }) {
     Alert.alert(title, message, [{ text: "Đã hiểu" }]);
   };
 
+  const handleLogoutPress = () => {
+    Alert.alert("Đăng xuất", "Bạn có chắc chắn muốn đăng xuất khỏi tài khoản này không?", [
+      { text: "Hủy", style: "cancel" },
+      {
+        text: "Đăng xuất",
+        style: "destructive",
+        onPress: () => logout(),
+      },
+    ]);
+  };
+
+  const displayName = user?.name || user?.display_name || "Du khách";
+  const displayEmail = user?.email || "";
+  const avatarUrl = user?.avatar_url || null;
+  const avatarInitial = displayName.charAt(0).toUpperCase() || "D";
+
   return (
     <SafeAreaView style={styles.safeArea} edges={["top"]}>
       {isFocused ? <StatusBar style="dark" /> : null}
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
-        {/* Banner khuyến khích Đăng nhập hoặc Đăng ký */}
-        <View style={styles.authInviteCard}>
-          <View style={styles.inviteHeader}>
-            <View style={styles.guestAvatar}>
-              <UserCircle2 size={32} color={colors.brandPrimary} />
-            </View>
-            <View style={{ flex: 1 }}>
-              <AppText style={styles.inviteTitle}>
-                Chào mừng bạn đến với Social Travel Booking
-              </AppText>
-              <AppText style={styles.inviteDesc}>
-                Đăng nhập hoặc đăng ký để đặt chỗ nhanh, tích lũy ưu đãi và lưu địa điểm yêu thích.
-              </AppText>
-            </View>
-          </View>
+      <View style={styles.topHeader}>
+        <AppText style={styles.topHeaderTitle}>Cá nhân & Cài đặt</AppText>
+      </View>
 
-          <View style={styles.authButtonsRow}>
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
+        {isAuthenticated ? (
+          <View style={styles.profileSummaryCard}>
+            <View style={styles.profileTopRow}>
+              {avatarUrl ? (
+                <Image source={{ uri: avatarUrl }} style={styles.avatarImage} />
+              ) : (
+                <View style={styles.avatarFallback}>
+                  <AppText style={styles.avatarInitial}>{avatarInitial}</AppText>
+                </View>
+              )}
+
+              <View style={{ flex: 1 }}>
+                <AppText style={styles.profileName} numberOfLines={1}>
+                  {displayName}
+                </AppText>
+                {displayEmail ? (
+                  <AppText style={styles.profileEmail} numberOfLines={1}>
+                    {displayEmail}
+                  </AppText>
+                ) : null}
+                <View style={styles.memberBadge}>
+                  <AppText style={styles.memberBadgeText}>Khách du lịch</AppText>
+                </View>
+              </View>
+            </View>
+
             <Pressable
-              style={styles.loginBtn}
-              onPress={() => navigation.navigate("Auth", { initialMode: "login" })}
+              style={({ pressed }) => [styles.editProfileBtn, pressed && { opacity: 0.9 }]}
+              onPress={() => navigation.navigate("Profile")}
             >
-              <AppText style={styles.loginBtnText}>Đăng nhập</AppText>
-            </Pressable>
-            <Pressable
-              style={styles.registerBtn}
-              onPress={() => navigation.navigate("Auth", { initialMode: "register" })}
-            >
-              <AppText style={styles.registerBtnText}>Đăng ký</AppText>
+              <Edit3 size={16} color={colors.brandPrimary} />
+              <AppText style={styles.editProfileBtnText}>Chỉnh sửa thông tin cá nhân</AppText>
             </Pressable>
           </View>
-        </View>
+        ) : (
+          <View style={styles.authInviteCard}>
+            <View style={styles.inviteHeader}>
+              <View style={styles.guestAvatar}>
+                <UserCircle2 size={32} color={colors.brandPrimary} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <AppText style={styles.inviteTitle}>
+                  Chào mừng bạn đến với Social Travel Booking
+                </AppText>
+                <AppText style={styles.inviteDesc}>
+                  Đăng nhập hoặc đăng ký để đặt chỗ nhanh, tích lũy ưu đãi và lưu địa điểm yêu
+                  thích.
+                </AppText>
+              </View>
+            </View>
+
+            <View style={styles.authButtonsRow}>
+              <Pressable
+                style={styles.loginBtn}
+                onPress={() => navigation.navigate("Auth", { initialMode: "login" })}
+              >
+                <AppText style={styles.loginBtnText}>Đăng nhập</AppText>
+              </Pressable>
+              <Pressable
+                style={styles.registerBtn}
+                onPress={() => navigation.navigate("Auth", { initialMode: "register" })}
+              >
+                <AppText style={styles.registerBtnText}>Đăng ký</AppText>
+              </Pressable>
+            </View>
+          </View>
+        )}
 
         {/* Nhóm 1: Tiện ích & Ưu đãi */}
         <AppText style={styles.groupHeading}>Tiện ích & Ưu đãi</AppText>
@@ -121,23 +170,39 @@ export default function AccountTabScreen({ navigation }) {
             icon={Wallet}
             label="Quản lý Ví"
             subtitle="Theo dõi số dư hoàn tiền và giao dịch cọc Escrow"
-            onPress={() => promptLoginForFeature("Quản lý Ví")}
+            onPress={() =>
+              isAuthenticated
+                ? navigation.navigate("BookingsTab")
+                : promptLoginForFeature("Quản lý Ví")
+            }
           />
           <MenuRow
             icon={Heart}
             label="Danh sách đã lưu"
             subtitle="Các chỗ ở, tour và điểm đến bạn yêu thích"
-            onPress={() => promptLoginForFeature("Danh sách đã lưu")}
+            onPress={() =>
+              isAuthenticated
+                ? openInfoNotice(
+                    "Danh sách đã lưu",
+                    "Bạn có thể lưu các dịch vụ yêu thích ngay từ màn hình chi tiết dịch vụ.",
+                  )
+                : promptLoginForFeature("Danh sách đã lưu")
+            }
           />
           <MenuRow
             icon={Tag}
             label="Ưu đãi"
             subtitle="Mã giảm giá thành viên và khuyến mãi theo mùa"
             onPress={() =>
-              openInfoNotice(
-                "Ưu đãi thành viên",
-                "Đăng nhập tài khoản để nhận mã giảm giá độc quyền cho chuyến đi đầu tiên.",
-              )
+              isAuthenticated
+                ? openInfoNotice(
+                    "Ưu đãi thành viên",
+                    "Các mã giảm giá công khai và quà tặng riêng của bạn sẽ tự động hiển thị tại màn hình Thông tin đặt chỗ.",
+                  )
+                : openInfoNotice(
+                    "Ưu đãi thành viên",
+                    "Đăng nhập tài khoản để nhận mã giảm giá độc quyền cho chuyến đi đầu tiên.",
+                  )
             }
             isLast
           />
@@ -198,6 +263,17 @@ export default function AccountTabScreen({ navigation }) {
             isLast
           />
         </View>
+
+        {isAuthenticated ? (
+          <Pressable
+            style={({ pressed }) => [styles.logoutBtn, pressed && { opacity: 0.85 }]}
+            onPress={handleLogoutPress}
+            accessibilityRole="button"
+          >
+            <LogOut size={18} color="#E11D48" />
+            <AppText style={styles.logoutBtnText}>Đăng xuất</AppText>
+          </Pressable>
+        ) : null}
       </ScrollView>
     </SafeAreaView>
   );
@@ -206,11 +282,101 @@ export default function AccountTabScreen({ navigation }) {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: colors.surfaceBase,
+    backgroundColor: "#FFFFFF",
+  },
+  topHeader: {
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm + 4,
+    backgroundColor: "#FFFFFF",
+    borderBottomWidth: 1,
+    borderBottomColor: "#E2E8F0",
+  },
+  topHeaderTitle: {
+    fontSize: 22,
+    fontWeight: "700",
+    color: colors.inkPrimary,
+    letterSpacing: -0.3,
   },
   scrollContent: {
     padding: spacing.md,
     paddingBottom: 120,
+    backgroundColor: colors.surfaceBase,
+  },
+  profileSummaryCard: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+    padding: spacing.md,
+    gap: 14,
+    marginBottom: spacing.md,
+  },
+  profileTopRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 14,
+  },
+  avatarImage: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: "#E0F2FE",
+  },
+  avatarFallback: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: "#E0F2FE",
+    borderWidth: 1.5,
+    borderColor: "#BAE6FD",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  avatarInitial: {
+    fontSize: 22,
+    fontWeight: "700",
+    color: colors.brandPrimary,
+  },
+  profileName: {
+    fontSize: 17,
+    fontWeight: "700",
+    color: colors.inkPrimary,
+  },
+  profileEmail: {
+    fontSize: 13,
+    color: colors.inkMuted,
+    marginTop: 2,
+  },
+  memberBadge: {
+    alignSelf: "flex-start",
+    backgroundColor: "#F0F9FF",
+    borderWidth: 1,
+    borderColor: "#BAE6FD",
+    borderRadius: 9999,
+    paddingHorizontal: 10,
+    paddingVertical: 3,
+    marginTop: 6,
+  },
+  memberBadgeText: {
+    fontSize: 11.5,
+    fontWeight: "700",
+    color: colors.brandPrimary,
+  },
+  editProfileBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    minHeight: 44,
+    borderRadius: radius.lg,
+    backgroundColor: "#F0F9FF",
+    borderWidth: 1,
+    borderColor: "#BAE6FD",
+  },
+  editProfileBtnText: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: colors.brandPrimary,
   },
   authInviteCard: {
     backgroundColor: "#FFFFFF",
@@ -331,5 +497,22 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: colors.inkSubtle,
     marginTop: 2,
+  },
+  logoutBtn: {
+    marginTop: spacing.md,
+    minHeight: 48,
+    borderRadius: radius.lg,
+    backgroundColor: "#FFF1F2",
+    borderWidth: 1,
+    borderColor: "#FECDD3",
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+  },
+  logoutBtnText: {
+    fontSize: 14.5,
+    fontWeight: "700",
+    color: "#E11D48",
   },
 });

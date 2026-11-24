@@ -23,9 +23,10 @@ export default function CancelBookingModal({ visible, bookingCode, loading, onCl
   };
 
   return (
-    <Modal visible={visible} animationType="fade" transparent onRequestClose={onClose}>
-      <View style={styles.backdrop}>
-        <View style={styles.dialog}>
+    <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
+      <Pressable style={styles.backdrop} onPress={loading ? undefined : onClose}>
+        <Pressable style={styles.dialog} onPress={() => {}}>
+          <View style={styles.sheetHandle} />
           <View style={styles.header}>
             <View style={styles.titleRow}>
               <View style={styles.warnIcon}>
@@ -96,8 +97,8 @@ export default function CancelBookingModal({ visible, bookingCode, loading, onCl
               )}
             </Pressable>
           </View>
-        </View>
-      </View>
+        </Pressable>
+      </Pressable>
     </Modal>
   );
 }
@@ -106,15 +107,25 @@ const styles = StyleSheet.create({
   backdrop: {
     flex: 1,
     backgroundColor: "rgba(15, 23, 42, 0.55)",
-    justifyContent: "center",
-    padding: spacing.md,
+    justifyContent: "flex-end",
   },
   dialog: {
     backgroundColor: "#FFFFFF",
-    borderRadius: 20,
-    padding: spacing.md,
-    maxHeight: "82%",
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    paddingHorizontal: spacing.md,
+    paddingTop: 10,
+    paddingBottom: spacing.lg,
+    maxHeight: "85%",
     gap: 14,
+  },
+  sheetHandle: {
+    width: 40,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: "#CBD5E1",
+    alignSelf: "center",
+    marginBottom: 2,
   },
   header: {
     flexDirection: "row",

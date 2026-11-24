@@ -268,4 +268,41 @@ class TouristBookingController extends Controller
             'data' => $cancelled,
         ]);
     }
+
+    /**
+     * POST /api/v1/public/bookings/{bookingCode}/cancel
+     * Cho phép khách vãng lai hủy đơn đang chờ thanh toán bằng mã đơn + số điện thoại.
+     */
+    public function cancelByCode(Request $request, string $bookingCode): JsonResponse
+    {
+        $validated = $request->validate([
+            'contact_phone' => ['required', 'string', 'max:30'],
+            'cancel_reason' => ['nullable', 'string', 'max:500'],
+        ]);
+
+        $booking = Booking::query()
+            ->where('booking_code', strtoupper(trim($bookingCode)))
+            ->where('contact_phone', trim($validated['contact_phone']))
+            ->first();
+
+        if (! $booking) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Không tìm thấy đơn đặt chỗ khớp với mã đơn và số điện thoại.',
+            ], 404);
+        }
+
+        $cancelled = $this->bookingService->cancelBooking(
+            $request->user(),
+            $booking,
+            $validated['cancel_reason'] ?? null,
+            true
+        );
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Đã hủy đơn đặt chỗ thành công.',
+            'data' => $cancelled,
+        ]);
+    }
 }

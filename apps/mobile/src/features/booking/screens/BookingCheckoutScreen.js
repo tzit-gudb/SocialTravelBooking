@@ -24,6 +24,7 @@ import {
   X,
 } from "lucide-react-native";
 import AppText from "../../../components/common/AppText";
+import { usePendingBooking } from "../../../context/PendingBookingContext";
 import { useSearchFilters } from "../../../context/SearchFilterContext";
 import { useAuth } from "../../../hooks/useAuth";
 import apiClient from "../../../lib/apiClient";
@@ -71,6 +72,7 @@ function startOfToday() {
  */
 export default function BookingCheckoutScreen({ navigation, route }) {
   const { user, isAuthenticated } = useAuth();
+  const { setPendingBooking } = usePendingBooking();
   const { searchFilters, updateSearchFilters } = useSearchFilters();
 
   const service = route?.params?.service || null;
@@ -130,10 +132,21 @@ export default function BookingCheckoutScreen({ navigation, route }) {
   const [availableCoupons, setAvailableCoupons] = useState([]);
   const [depositRate, setDepositRate] = useState(null);
 
-  const [contactName, setContactName] = useState(user?.name || "");
-  const [contactPhone, setContactPhone] = useState(user?.phone || "");
+  const resolvedUserPhone =
+    user?.tourist_profile?.phone_number || user?.phone_number || user?.phone || "";
+  const resolvedUserName = user?.name || user?.tourist_profile?.name || user?.display_name || "";
+
+  const [contactName, setContactName] = useState(resolvedUserName);
+  const [contactPhone, setContactPhone] = useState(resolvedUserPhone);
   const [contactEmail, setContactEmail] = useState(user?.email || "");
   const [specialRequests, setSpecialRequests] = useState("");
+
+  useEffect(() => {
+    if (!user) return;
+    if (!contactName && resolvedUserName) setContactName(resolvedUserName);
+    if (!contactPhone && resolvedUserPhone) setContactPhone(resolvedUserPhone);
+    if (!contactEmail && user.email) setContactEmail(user.email);
+  }, [user, resolvedUserName, resolvedUserPhone, contactName, contactPhone, contactEmail]);
 
   const [preview, setPreview] = useState(null);
   const [previewLoading, setPreviewLoading] = useState(false);
@@ -283,12 +296,31 @@ export default function BookingCheckoutScreen({ navigation, route }) {
 
       const created = res?.data;
       if (created) {
-        navigation.replace("BookingDetail", {
-          bookingId: created.id,
-          bookingCode: created.booking_code,
-          contactPhone: created.contact_phone || contactPhone.trim(),
-          initialBooking: created,
-        });
+        if (created.status === "pending_payment") {
+          await setPendingBooking({
+            bookingId: created.id,
+            bookingCode: created.booking_code,
+            contactPhone: created.contact_phone || contactPhone.trim(),
+            serviceName: service.name,
+            depositAmount: created.deposit_amount,
+            paymentExpiresAt: created.payment_expires_at,
+          });
+          navigation.replace("SepayPayment", {
+            bookingId: created.id,
+            bookingCode: created.booking_code,
+            contactPhone: created.contact_phone || contactPhone.trim(),
+            serviceName: service.name,
+            depositAmount: created.deposit_amount,
+            paymentExpiresAt: created.payment_expires_at,
+          });
+        } else {
+          navigation.replace("BookingDetail", {
+            bookingId: created.id,
+            bookingCode: created.booking_code,
+            contactPhone: created.contact_phone || contactPhone.trim(),
+            initialBooking: created,
+          });
+        }
       } else {
         navigation.goBack();
       }

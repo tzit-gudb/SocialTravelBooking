@@ -1,4 +1,4 @@
-﻿import React, { useCallback, useState } from "react";
+﻿import React, { useCallback, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -15,11 +15,39 @@ import { StatusBar } from "expo-status-bar";
 import { useFocusEffect, useIsFocused } from "@react-navigation/native";
 import { CalendarCheck2, Compass, QrCode, Search, ShieldCheck } from "lucide-react-native";
 import AppText from "../../../components/common/AppText";
+import Skeleton from "../../../components/common/Skeleton";
 import { useAuth } from "../../../hooks/useAuth";
 import { colors, radius, spacing } from "../../../theme/tokens";
 import BookingCard from "../../booking/components/BookingCard";
 import { BOOKING_STATUS_FILTERS } from "../../booking/models/bookingModel";
 import bookingService from "../../booking/services/bookingService";
+
+function BookingSkeletonList() {
+  return (
+    <View style={styles.listContent}>
+      {[1, 2, 3].map((idx) => (
+        <View key={idx} style={styles.skeletonCard}>
+          <View style={styles.skeletonTopRow}>
+            <Skeleton width={120} height={14} borderRadius={6} />
+            <Skeleton width={88} height={22} borderRadius={999} />
+          </View>
+          <View style={styles.skeletonMainRow}>
+            <Skeleton width={78} height={78} borderRadius={12} />
+            <View style={{ flex: 1, gap: 8 }}>
+              <Skeleton width="88%" height={16} borderRadius={6} />
+              <Skeleton width="55%" height={13} borderRadius={6} />
+              <Skeleton width="70%" height={13} borderRadius={6} />
+            </View>
+          </View>
+          <View style={styles.skeletonFooter}>
+            <Skeleton width={110} height={18} borderRadius={6} />
+            <Skeleton width={76} height={28} borderRadius={999} />
+          </View>
+        </View>
+      ))}
+    </View>
+  );
+}
 
 /**
  * Tab "Đặt chỗ" — Lịch sử đặt chỗ của Du khách & Tra cứu đơn cho Khách vãng lai.
@@ -41,9 +69,30 @@ export default function BookingsTabScreen({ navigation }) {
   const [lookupPhone, setLookupPhone] = useState("");
   const [lookupLoading, setLookupLoading] = useState(false);
 
+  const abortControllerRef = useRef(null);
+  const lastFetchedRef = useRef({ status: null, timestamp: 0 });
+
   const fetchBookings = useCallback(
-    async ({ page = 1, append = false, isRefresh = false } = {}) => {
+    async ({ page = 1, append = false, isRefresh = false, force = false } = {}) => {
       if (!isAuthenticated) return;
+
+      const now = Date.now();
+      const isSameFreshStatus =
+        !force &&
+        !append &&
+        !isRefresh &&
+        lastFetchedRef.current.status === selectedStatus &&
+        now - lastFetchedRef.current.timestamp < 15000;
+
+      if (isSameFreshStatus) {
+        return;
+      }
+
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+      const controller = new AbortController();
+      abortControllerRef.current = controller;
 
       if (isRefresh) {
         setRefreshing(true);
@@ -59,15 +108,25 @@ export default function BookingsTabScreen({ navigation }) {
           status: selectedStatus,
           page,
           perPage: 15,
+          signal: controller.signal,
         });
         setMeta(result.meta);
         setBookings((prev) => (append ? [...prev, ...result.items] : result.items));
+        if (!append) {
+          lastFetchedRef.current = { status: selectedStatus, timestamp: Date.now() };
+        }
       } catch (err) {
+        if (err?.name === "AbortError") {
+          return;
+        }
         setError(err?.message || "Không thể tải danh sách đơn đặt chỗ.");
       } finally {
-        setLoading(false);
-        setRefreshing(false);
-        setLoadingMore(false);
+        if (abortControllerRef.current === controller) {
+          abortControllerRef.current = null;
+          setLoading(false);
+          setRefreshing(false);
+          setLoadingMore(false);
+        }
       }
     },
     [isAuthenticated, selectedStatus],
@@ -78,6 +137,12 @@ export default function BookingsTabScreen({ navigation }) {
       if (isAuthenticated) {
         fetchBookings({ page: 1, append: false, isRefresh: false });
       }
+      return () => {
+        if (abortControllerRef.current) {
+          abortControllerRef.current.abort();
+          abortControllerRef.current = null;
+        }
+      };
     }, [isAuthenticated, fetchBookings]),
   );
 
@@ -237,10 +302,7 @@ export default function BookingsTabScreen({ navigation }) {
 
       <View style={styles.listContainer}>
         {loading && bookings.length === 0 ? (
-          <View style={styles.centerState}>
-            <ActivityIndicator size="large" color={colors.brandPrimary} />
-            <AppText style={styles.stateText}>Đang tải lịch sử đặt chỗ...</AppText>
-          </View>
+          <BookingSkeletonList />
         ) : error && bookings.length === 0 ? (
           <View style={styles.centerState}>
             <AppText style={styles.cardTitle}>Không thể tải dữ liệu</AppText>
@@ -531,5 +593,30 @@ const styles = StyleSheet.create({
   footerLoader: {
     paddingVertical: 16,
     alignItems: "center",
+  },
+  skeletonCard: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+    padding: spacing.md,
+    gap: 12,
+  },
+  skeletonTopRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  skeletonMainRow: {
+    flexDirection: "row",
+    gap: 12,
+  },
+  skeletonFooter: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingTop: 10,
+    borderTopWidth: 1,
+    borderTopColor: "#F1F5F9",
   },
 });
