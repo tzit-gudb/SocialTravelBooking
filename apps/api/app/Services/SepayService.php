@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Events\BookingUpdated;
 use App\Models\Booking;
 use App\Models\Payment;
 use App\Models\Service;
@@ -12,7 +13,8 @@ use Illuminate\Validation\ValidationException;
 class SepayService
 {
     public function __construct(
-        private readonly BookingService $bookingService
+        private readonly BookingService $bookingService,
+        private readonly EscrowService $escrowService
     ) {}
 
     /**
@@ -186,7 +188,7 @@ class SepayService
 
         $normalizedCode = $matches[1];
 
-        return DB::transaction(function () use ($payload, $sepayId, $referenceCode, $transferAmount, $normalizedCode) {
+        $result = DB::transaction(function () use ($payload, $sepayId, $referenceCode, $transferAmount, $normalizedCode) {
             // 1. Idempotency check theo sepay_id (chống xử lý trùng khi Sepay retry)
             if ($sepayId !== null && $sepayId !== '') {
                 $alreadyPaidBySepayId = Payment::query()
@@ -307,6 +309,9 @@ class SepayService
                 Service::where('id', $booking->service_id)->increment('total_bookings');
             }
 
+            // 7. Tạm khóa tiền cọc vào locked_balance ví Provider (Escrow)
+            $this->escrowService->lockDepositOnPayment($booking);
+
             return [
                 'processed' => true,
                 'already_processed' => false,
@@ -314,8 +319,23 @@ class SepayService
                 'booking_code' => $booking->booking_code,
                 'booking_status' => 'confirmed',
                 'amount' => $transferAmount,
+                '_booking_model' => $booking->fresh(),
             ];
         });
+
+        if (! empty($result['processed']) && empty($result['already_processed']) && ! empty($result['_booking_model'])) {
+            try {
+                BookingUpdated::dispatch($result['_booking_model'], 'confirmed');
+            } catch (\Throwable $e) {
+                Log::warning('Không thể phát sự kiện realtime BookingUpdated (confirmed): '.$e->getMessage(), [
+                    'booking_code' => $result['booking_code'] ?? null,
+                ]);
+            }
+        }
+
+        unset($result['_booking_model']);
+
+        return $result;
     }
 
     /**

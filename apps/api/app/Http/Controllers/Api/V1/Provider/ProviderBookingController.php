@@ -5,13 +5,15 @@ namespace App\Http\Controllers\Api\V1\Provider;
 use App\Http\Controllers\Controller;
 use App\Models\Booking;
 use App\Services\BookingService;
+use App\Services\EscrowService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class ProviderBookingController extends Controller
 {
     public function __construct(
-        private readonly BookingService $bookingService
+        private readonly BookingService $bookingService,
+        private readonly EscrowService $escrowService
     ) {}
 
     /**
@@ -108,6 +110,7 @@ class ProviderBookingController extends Controller
 
         return response()->json([
             'success' => true,
+            'provider_id' => $provider->id,
             'counts' => $counts,
             'data' => $items,
             'meta' => [
@@ -158,6 +161,40 @@ class ProviderBookingController extends Controller
         return response()->json([
             'success' => true,
             'data' => $booking,
+        ]);
+    }
+
+    /**
+     * POST /api/v1/provider/bookings/check-in
+     * Quét mã QR vé điện tử của khách -> Check-in & tự động giải phóng cọc Escrow vào ví.
+     */
+    public function checkInByQr(Request $request): JsonResponse
+    {
+        $provider = $request->user()?->providerProfile;
+        if (! $provider) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Tài khoản chưa có hồ sơ Nhà cung cấp.',
+            ], 403);
+        }
+
+        $validated = $request->validate([
+            'qr_data' => ['required', 'string', 'max:500'],
+        ]);
+
+        $result = $this->escrowService->checkInByQr($provider, $validated['qr_data']);
+        $booking = $result['booking'];
+        $booking->makeHidden(['qr_checkin_token']);
+
+        return response()->json([
+            'success' => true,
+            'message' => $result['released_amount'] > 0
+                ? 'Check-in thành công! Tiền cọc Escrow đã được giải phóng vào ví khả dụng.'
+                : 'Check-in thành công!',
+            'data' => [
+                'booking' => $booking,
+                'released_amount' => $result['released_amount'],
+            ],
         ]);
     }
 }

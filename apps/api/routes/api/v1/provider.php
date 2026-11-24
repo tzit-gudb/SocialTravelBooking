@@ -56,5 +56,6 @@ Route::prefix('campaigns')->group(function () {
 // ── Provider Booking Management ───────────────────────────────
 Route::prefix('bookings')->group(function () {
     Route::get('/', [ProviderBookingController::class, 'index']);
+    Route::post('/check-in', [ProviderBookingController::class, 'checkInByQr']);
     Route::get('/{id}', [ProviderBookingController::class, 'show'])->whereNumber('id');
 });
