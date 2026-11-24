@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Enums\ProviderStatus;
 use App\Enums\ServiceStatus;
+use App\Events\BookingUpdated;
 use App\Models\Booking;
 use App\Models\Coupon;
 use App\Models\HotelRoomType;
@@ -16,6 +17,7 @@ use Carbon\Carbon;
 use Carbon\CarbonPeriod;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
@@ -56,13 +58,13 @@ class BookingService
 
         $count = 0;
         foreach ($expiredIds as $bookingId) {
-            DB::transaction(function () use ($bookingId, &$count) {
+            $expiredBooking = DB::transaction(function () use ($bookingId, &$count) {
                 $locked = Booking::where('id', $bookingId)->lockForUpdate()->first();
                 if (! $locked || $locked->status !== 'pending_payment') {
-                    return;
+                    return null;
                 }
                 if ($locked->payment_expires_at && $locked->payment_expires_at->isFuture()) {
-                    return;
+                    return null;
                 }
 
                 $this->restoreAvailabilityForBooking($locked);
@@ -73,7 +75,13 @@ class BookingService
                     'cancelled_at' => now(),
                 ]);
                 $count++;
+
+                return $locked->fresh();
             });
+
+            if ($expiredBooking) {
+                $this->broadcastBookingUpdatedSafely($expiredBooking, 'cancelled');
+            }
         }
 
         return $count;
@@ -154,7 +162,7 @@ class BookingService
         $serviceId = (int) $data['service_id'];
         $this->expireStaleHolds($serviceId);
 
-        return DB::transaction(function () use ($user, $data, $serviceId) {
+        $booking = DB::transaction(function () use ($user, $data, $serviceId) {
             $service = $this->loadBookableService($serviceId);
             $startDate = Carbon::parse($data['start_date'])->startOfDay();
             $endDate = ! empty($data['end_date'])
@@ -285,6 +293,10 @@ class BookingService
                 'coupon:id,code,type,discount_value',
             ]);
         });
+
+        $this->broadcastBookingUpdatedSafely($booking, 'created');
+
+        return $booking;
     }
 
     /**
@@ -302,7 +314,7 @@ class BookingService
             ]);
         }
 
-        return DB::transaction(function () use ($booking, $reason) {
+        $cancelled = DB::transaction(function () use ($booking, $reason) {
             $locked = Booking::where('id', $booking->id)->lockForUpdate()->firstOrFail();
 
             if (! in_array($locked->status, ['pending_payment', 'confirmed'], true)) {
@@ -321,6 +333,25 @@ class BookingService
 
             return $locked->fresh();
         });
+
+        $this->broadcastBookingUpdatedSafely($cancelled, 'cancelled');
+
+        return $cancelled;
+    }
+
+    private function broadcastBookingUpdatedSafely(?Booking $booking, string $action): void
+    {
+        if (! $booking) {
+            return;
+        }
+
+        try {
+            BookingUpdated::dispatch($booking, $action);
+        } catch (\Throwable $e) {
+            Log::warning("Không thể phát sự kiện realtime BookingUpdated ({$action}): ".$e->getMessage(), [
+                'booking_code' => $booking->booking_code,
+            ]);
+        }
     }
 
     private function restoreAvailabilityForBooking(Booking $booking): void
