@@ -6,17 +6,21 @@ import {
   Image,
   Pressable,
   ScrollView,
-  Share,
   StyleSheet,
   View,
 } from "react-native";
+import * as Clipboard from "expo-clipboard";
+import * as FileSystem from "expo-file-system/legacy";
+import * as MediaLibrary from "expo-media-library";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import {
   ArrowLeft,
+  Check,
   CheckCircle2,
   Clock,
   Copy,
+  Download,
   RefreshCw,
   ShieldCheck,
   XCircle,
@@ -54,6 +58,8 @@ export default function SepayPaymentScreen({ navigation, route }) {
   );
   const [cancelModalVisible, setCancelModalVisible] = useState(false);
   const [cancelling, setCancelling] = useState(false);
+  const [copiedField, setCopiedField] = useState("");
+  const [downloadingQr, setDownloadingQr] = useState(false);
 
   const goHome = useCallback(() => {
     navigation.reset({
@@ -220,14 +226,42 @@ export default function SepayPaymentScreen({ navigation, route }) {
     return () => clearInterval(interval);
   }, [loading, error, isPaid, remainingSeconds, pollPaymentStatus]);
 
-  const handleShareTransferInfo = async () => {
-    if (!qrData) return;
+  const handleCopyField = async (fieldKey, value) => {
+    if (!value) return;
     try {
-      await Share.share({
-        message: `Thanh toán đơn ${qrData.booking_code}\nNgân hàng: ${qrData.bank_code}\nSố tài khoản: ${qrData.account_number}\nChủ tài khoản: ${qrData.account_name}\nSố tiền: ${formatCurrencyVnd(qrData.amount)}\nNội dung CK: ${qrData.transfer_content}`,
-      });
+      await Clipboard.setStringAsync(String(value));
+      setCopiedField(fieldKey);
+      setTimeout(() => {
+        setCopiedField((prev) => (prev === fieldKey ? "" : prev));
+      }, 2000);
     } catch {
-      // Bỏ qua nếu người dùng đóng hộp thoại chia sẻ
+      Alert.alert("Không thể sao chép", "Vui lòng thử sao chép thủ công.");
+    }
+  };
+
+  const handleDownloadQr = async () => {
+    if (!qrData?.qr_url || downloadingQr) return;
+    setDownloadingQr(true);
+    try {
+      const permission = await MediaLibrary.requestPermissionsAsync();
+      if (!permission.granted) {
+        Alert.alert(
+          "Cần quyền truy cập ảnh",
+          "Vui lòng cấp quyền lưu ảnh để tải mã VietQR về thư viện.",
+        );
+        return;
+      }
+
+      const fileName = `sepay-qr-${qrData.transfer_content || Date.now()}.png`;
+      const targetUri = `${FileSystem.cacheDirectory}${fileName}`;
+      const downloaded = await FileSystem.downloadAsync(qrData.qr_url, targetUri);
+      await MediaLibrary.saveToLibraryAsync(downloaded.uri);
+
+      Alert.alert("Đã lưu ảnh QR", "Mã VietQR đã được lưu vào thư viện ảnh trên thiết bị.");
+    } catch {
+      Alert.alert("Không thể tải ảnh QR", "Vui lòng kiểm tra kết nối mạng và thử lại.");
+    } finally {
+      setDownloadingQr(false);
     }
   };
 
@@ -321,46 +355,121 @@ export default function SepayPaymentScreen({ navigation, route }) {
                     />
                   </View>
 
-                  <View style={styles.pollingHint}>
-                    <ActivityIndicator size="small" color={colors.brandPrimary} />
-                    <AppText style={styles.pollingText}>
-                      Đang tự động chờ xác nhận từ Sepay...
-                    </AppText>
-                  </View>
+                  <Pressable
+                    style={[styles.downloadQrBtn, downloadingQr && { opacity: 0.7 }]}
+                    onPress={handleDownloadQr}
+                    disabled={downloadingQr}
+                  >
+                    {downloadingQr ? (
+                      <ActivityIndicator size="small" color={colors.brandPrimary} />
+                    ) : (
+                      <>
+                        <Download size={15} color={colors.brandPrimary} />
+                        <AppText style={styles.downloadQrText}>Tải ảnh QR về máy</AppText>
+                      </>
+                    )}
+                  </Pressable>
                 </View>
 
                 <View style={styles.infoCard}>
                   <View style={styles.infoHeader}>
                     <AppText style={styles.infoTitle}>Thông tin chuyển khoản thủ công</AppText>
-                    <Pressable style={styles.copyBtn} onPress={handleShareTransferInfo}>
-                      <Copy size={14} color={colors.brandPrimary} />
-                      <AppText style={styles.copyBtnText}>Sao chép / Chia sẻ</AppText>
-                    </Pressable>
                   </View>
 
                   <View style={styles.infoRow}>
                     <AppText style={styles.infoLabel}>Ngân hàng</AppText>
                     <AppText style={styles.infoVal}>{qrData?.bank_code}</AppText>
                   </View>
+
                   <View style={styles.infoRow}>
                     <AppText style={styles.infoLabel}>Số tài khoản</AppText>
-                    <AppText style={styles.infoVal}>{qrData?.account_number}</AppText>
+                    <View style={styles.infoValueAction}>
+                      <AppText style={styles.infoVal}>{qrData?.account_number}</AppText>
+                      <Pressable
+                        style={styles.inlineCopyBtn}
+                        onPress={() => handleCopyField("account_number", qrData?.account_number)}
+                        hitSlop={6}
+                      >
+                        {copiedField === "account_number" ? (
+                          <Check size={13} color="#059669" />
+                        ) : (
+                          <Copy size={13} color={colors.brandPrimary} />
+                        )}
+                        <AppText
+                          style={[
+                            styles.inlineCopyText,
+                            copiedField === "account_number" && { color: "#059669" },
+                          ]}
+                        >
+                          {copiedField === "account_number" ? "Đã chép" : "Chép"}
+                        </AppText>
+                      </Pressable>
+                    </View>
                   </View>
+
                   <View style={styles.infoRow}>
                     <AppText style={styles.infoLabel}>Chủ tài khoản</AppText>
                     <AppText style={styles.infoVal}>{qrData?.account_name}</AppText>
                   </View>
+
                   <View style={styles.infoRow}>
                     <AppText style={styles.infoLabel}>Số tiền chính xác</AppText>
-                    <AppText style={[styles.infoVal, { color: "#E11D48" }]}>
-                      {formatCurrencyVnd(qrData?.amount)}
-                    </AppText>
+                    <View style={styles.infoValueAction}>
+                      <AppText style={[styles.infoVal, { color: "#E11D48" }]}>
+                        {formatCurrencyVnd(qrData?.amount)}
+                      </AppText>
+                      <Pressable
+                        style={styles.inlineCopyBtn}
+                        onPress={() =>
+                          handleCopyField("amount", String(Math.round(Number(qrData?.amount || 0))))
+                        }
+                        hitSlop={6}
+                      >
+                        {copiedField === "amount" ? (
+                          <Check size={13} color="#059669" />
+                        ) : (
+                          <Copy size={13} color={colors.brandPrimary} />
+                        )}
+                        <AppText
+                          style={[
+                            styles.inlineCopyText,
+                            copiedField === "amount" && { color: "#059669" },
+                          ]}
+                        >
+                          {copiedField === "amount" ? "Đã chép" : "Chép"}
+                        </AppText>
+                      </Pressable>
+                    </View>
                   </View>
+
                   <View style={styles.infoRow}>
                     <AppText style={styles.infoLabel}>Nội dung CK</AppText>
-                    <AppText style={[styles.infoVal, { color: colors.brandPrimary }]}>
-                      {qrData?.transfer_content}
-                    </AppText>
+                    <View style={styles.infoValueAction}>
+                      <AppText style={[styles.infoVal, { color: colors.brandPrimary }]}>
+                        {qrData?.transfer_content}
+                      </AppText>
+                      <Pressable
+                        style={styles.inlineCopyBtn}
+                        onPress={() =>
+                          handleCopyField("transfer_content", qrData?.transfer_content)
+                        }
+                        hitSlop={6}
+                      >
+                        {copiedField === "transfer_content" ? (
+                          <Check size={13} color="#059669" />
+                        ) : (
+                          <Copy size={13} color={colors.brandPrimary} />
+                        )}
+                        <AppText
+                          style={[
+                            styles.inlineCopyText,
+                            copiedField === "transfer_content" && { color: "#059669" },
+                          ]}
+                        >
+                          {copiedField === "transfer_content" ? "Đã chép" : "Chép"}
+                        </AppText>
+                      </Pressable>
+                    </View>
                   </View>
                 </View>
 
@@ -370,6 +479,24 @@ export default function SepayPaymentScreen({ navigation, route }) {
                     Giữ nguyên nội dung chuyển khoản{" "}
                     <AppText style={{ fontWeight: "700" }}>{qrData?.transfer_content}</AppText> để
                     hệ thống tự động xác nhận đơn ngay lập tức.
+                  </AppText>
+                </View>
+
+                <View style={styles.noticeCard}>
+                  <AppText style={styles.noticeTitle}>Lưu ý dành cho khách hàng</AppText>
+                  <AppText style={styles.noticeItem}>
+                    • Nếu bạn đã chuyển khoản thành công, vui lòng chờ trong vòng{" "}
+                    <AppText style={{ fontWeight: "700" }}>10 – 30 giây</AppText> để hệ thống tự
+                    động đối soát và xác nhận đơn hàng của bạn.
+                  </AppText>
+                  <AppText style={styles.noticeItem}>
+                    • Bạn cũng có thể bấm nút{" "}
+                    <AppText style={{ fontWeight: "700" }}>&quot;Tôi đã chuyển khoản&quot;</AppText>{" "}
+                    bên dưới để kiểm tra trạng thái ngay lập tức.
+                  </AppText>
+                  <AppText style={styles.noticeItem}>
+                    • Nếu quá 2 phút vẫn chưa thấy đơn chuyển sang Đã xác nhận, vui lòng giữ lại ảnh
+                    chụp biên lai giao dịch và liên hệ bộ phận hỗ trợ.
                   </AppText>
                 </View>
               </>
@@ -554,15 +681,23 @@ const styles = StyleSheet.create({
     width: "100%",
     height: "100%",
   },
-  pollingHint: {
+  downloadQrBtn: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 8,
+    justifyContent: "center",
+    gap: 6,
+    paddingHorizontal: 16,
+    paddingVertical: 9,
+    borderRadius: 9999,
+    backgroundColor: "#F0F9FF",
+    borderWidth: 1,
+    borderColor: "#BAE6FD",
     marginTop: 4,
   },
-  pollingText: {
-    fontSize: 12.5,
-    color: colors.inkBody,
+  downloadQrText: {
+    fontSize: 13,
+    fontWeight: "700",
+    color: colors.brandPrimary,
   },
   infoCard: {
     backgroundColor: "#FFFFFF",
@@ -612,6 +747,27 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     color: colors.inkPrimary,
   },
+  infoValueAction: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  inlineCopyBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    backgroundColor: "#F0F9FF",
+    borderWidth: 1,
+    borderColor: "#BAE6FD",
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 9999,
+  },
+  inlineCopyText: {
+    fontSize: 11.5,
+    fontWeight: "700",
+    color: colors.brandPrimary,
+  },
   escrowNote: {
     flexDirection: "row",
     alignItems: "center",
@@ -627,6 +783,25 @@ const styles = StyleSheet.create({
     fontSize: 12.5,
     lineHeight: 18,
     color: "#0369A1",
+  },
+  noticeCard: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+    padding: spacing.md,
+    gap: 6,
+  },
+  noticeTitle: {
+    fontSize: 13.5,
+    fontWeight: "700",
+    color: colors.inkPrimary,
+    marginBottom: 2,
+  },
+  noticeItem: {
+    fontSize: 12.5,
+    lineHeight: 18.5,
+    color: colors.inkBody,
   },
   bottomBar: {
     flexDirection: "row",
