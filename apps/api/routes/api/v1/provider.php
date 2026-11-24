@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\V1\Provider\HotelRoomTypeController;
 use App\Http\Controllers\Api\V1\Provider\KycController;
+use App\Http\Controllers\Api\V1\Provider\ProviderBookingController;
 use App\Http\Controllers\Api\V1\Provider\ProviderCampaignController;
 use App\Http\Controllers\Api\V1\Provider\ProviderProfileController;
 use App\Http\Controllers\Api\V1\Provider\ServiceAvailabilityController;
@@ -50,4 +51,10 @@ Route::prefix('services')->group(function () {
 Route::prefix('campaigns')->group(function () {
     Route::get('/', [ProviderCampaignController::class, 'index']);
     Route::put('/{campaignId}/services', [ProviderCampaignController::class, 'toggleService']);
+});
+
+// ── Provider Booking Management ───────────────────────────────
+Route::prefix('bookings')->group(function () {
+    Route::get('/', [ProviderBookingController::class, 'index']);
+    Route::get('/{id}', [ProviderBookingController::class, 'show'])->whereNumber('id');
 });
