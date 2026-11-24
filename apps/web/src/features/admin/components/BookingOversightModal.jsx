@@ -2,6 +2,7 @@ import React from "react";
 import { X } from "lucide-react";
 import Typography from "../../../components/ui/Typography";
 import { Skeleton } from "../../../components/ui/Skeleton";
+import QrCodeSvg from "../../../components/ui/QrCodeSvg";
 import { formatCurrencyVnd } from "../../provider/models/serviceFormModel";
 
 /**
@@ -65,6 +66,44 @@ export default function BookingOversightModal({ booking, isLoadingDetail = false
                 </div>
               </div>
             </div>
+
+            {/* Vé điện tử QR Check-in */}
+            {["confirmed", "checked_in", "completed"].includes(booking.status) &&
+              booking.qr_checkin_token && (
+                <div className="flex flex-col sm:flex-row items-center gap-4 p-4 rounded-xl border border-sky-200 bg-sky-50/60">
+                  <div className="p-2 bg-white rounded-xl border border-slate-200 shrink-0">
+                    <QrCodeSvg
+                      value={JSON.stringify({
+                        code: booking.booking_code,
+                        token: booking.qr_checkin_token,
+                      })}
+                      size={96}
+                    />
+                  </div>
+                  <div className="flex-1 text-center sm:text-left space-y-1">
+                    <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2">
+                      <span className="text-sm font-bold text-ink-primary">
+                        Vé điện tử QR Check-in
+                      </span>
+                      <span
+                        className={`px-2 py-0.5 rounded-full text-[11px] font-semibold ${
+                          booking.checked_in_at
+                            ? "bg-emerald-100 text-emerald-700"
+                            : "bg-sky-100 text-sky-700"
+                        }`}
+                      >
+                        {booking.checked_in_at ? "Đã check-in" : "Chưa check-in"}
+                      </span>
+                    </div>
+                    <div className="text-xs font-mono text-brand-primary font-semibold">
+                      Token: {booking.qr_checkin_token}
+                    </div>
+                    <div className="text-xs text-ink-subtle">
+                      Khách hàng xuất trình mã QR này trên Mobile App khi đến nhận dịch vụ.
+                    </div>
+                  </div>
+                </div>
+              )}
 
             {/* Lịch sử thanh toán */}
             <div className="space-y-2.5">
