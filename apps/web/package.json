@@ -13,6 +13,7 @@
     "@stb/shared-types": "workspace:*",
     "@stb/tokens": "workspace:*",
     "firebase": "^11.4.0",
+    "jsqr": "^1.4.0",
     "laravel-echo": "^2.6.1",
     "lucide-react": "^1.16.0",
     "pusher-js": "^8.6.0",

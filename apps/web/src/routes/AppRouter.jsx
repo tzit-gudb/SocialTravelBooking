@@ -16,6 +16,7 @@ import AdminReportsPage from "../features/admin/pages/AdminReportsPage";
 import AdminBookingsPage from "../features/admin/pages/AdminBookingsPage";
 import ProviderDashboardPage from "../features/provider/pages/ProviderDashboardPage";
 import ProviderBookingsPage from "../features/provider/pages/ProviderBookingsPage";
+import ProviderQrCheckinPage from "../features/provider/pages/ProviderQrCheckinPage";
 import ProviderProfilePage from "../features/provider/pages/ProviderProfilePage";
 import ServiceManagementPage from "../features/provider/pages/ServiceManagementPage";
 import ProviderCampaignsPage from "../features/provider/pages/ProviderCampaignsPage";
@@ -322,6 +323,16 @@ export default function AppRouter() {
           element={
             <ProtectedRoute allowedRoles={["provider", "admin"]}>
               <ProviderBookingsPage />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* 3b. Đối soát vé QR Check-in (Provider) */}
+        <Route
+          path="/provider/qr-checkin"
+          element={
+            <ProtectedRoute allowedRoles={["provider", "admin"]}>
+              <ProviderQrCheckinPage />
             </ProtectedRoute>
           }
         />
