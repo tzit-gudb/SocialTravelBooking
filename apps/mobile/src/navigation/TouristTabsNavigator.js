@@ -42,6 +42,15 @@ function LiquidGlassTabBar({ state, descriptors, navigation }) {
           const IconComp = config.icon;
 
           const onPress = () => {
+            if (route.name === "DiscoverTab") {
+              const parentNav = navigation.getParent();
+              if (parentNav) {
+                parentNav.navigate("SocialApp");
+              } else {
+                navigation.navigate("SocialApp");
+              }
+              return;
+            }
             const event = navigation.emit({
               type: "tabPress",
               target: route.key,

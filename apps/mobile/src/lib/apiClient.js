@@ -110,10 +110,11 @@ async function request(endpoint, options = {}) {
   const { method = "GET", body, headers = {}, token, signal } = options;
 
   const activeToken = token || mobileSessionStore.getToken();
+  const isFormData = typeof FormData !== "undefined" && body instanceof FormData;
 
   const requestHeaders = {
     Accept: "application/json",
-    "Content-Type": "application/json",
+    ...(isFormData ? {} : { "Content-Type": "application/json" }),
     "X-Platform": "mobile",
     ...headers,
   };
@@ -131,7 +132,7 @@ async function request(endpoint, options = {}) {
     response = await fetch(url, {
       method,
       headers: requestHeaders,
-      body: body ? JSON.stringify(body) : undefined,
+      body: body ? (isFormData ? body : JSON.stringify(body)) : undefined,
       signal,
     });
   } catch (netErr) {

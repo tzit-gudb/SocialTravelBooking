@@ -103,9 +103,9 @@ export default function ExploreHomeScreen({ navigation }) {
 
             <ThreadsMasonryFeed
               posts={featuredPosts}
-              onPressPost={() => navigation.navigate("DiscoverTab")}
+              onPressPost={() => navigation.navigate("SocialApp")}
               onPressService={handleSelectService}
-              onPressSeeAll={() => navigation.navigate("DiscoverTab")}
+              onPressSeeAll={() => navigation.navigate("SocialApp")}
             />
 
             <AiPlannerBanner />
