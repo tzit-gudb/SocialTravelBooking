@@ -88,9 +88,9 @@
 
 | Tên Task (Issue / Sub-issues)                                            |     Platform     |  Status  | Priority | Estimate | Module      | Role      | Start date | Date target |
 | :----------------------------------------------------------------------- | :--------------: | :------: | :------: | :------: | :---------- | :-------- | :--------- | :---------- |
-| **[EPIC] Cơ chế Ký quỹ Escrow & Ví Provider**                            |  **API / Web**   | **Todo** |  **P0**  |  **5**   | **Payment** | **admin** | 09/12      | 11/12       |
-| ↳ Check-in quét QR / User xác nhận -> Tự động giải phóng tiền cọc vào ví |       API        |   Todo   |    P0    |    3     | Payment     | general   | 09/12      | 10/12       |
-| ↳ Provider Dashboard: Quản lý số dư ví & Lịch sử giao dịch               |       Web        |   Todo   |    P1    |    2     | Payment     | provider  | 10/12      | 11/12       |
+| **[EPIC] Cơ chế Ký quỹ Escrow & Ví Provider**                            |  **API / Web**   | **Done** |  **P0**  |  **5**   | **Payment** | **admin** | 09/12      | 11/12       |
+| ↳ Check-in quét QR / User xác nhận -> Tự động giải phóng tiền cọc vào ví |       API        |   Done   |    P0    |    3     | Payment     | general   | 09/12      | 10/12       |
+| ↳ Provider Dashboard: Quản lý số dư ví & Lịch sử giao dịch               |       Web        |   Done   |    P1    |    2     | Payment     | provider  | 10/12      | 11/12       |
 | **[EPIC] Đánh giá Dịch vụ (Review & Rating)**                            | **API / Mobile** | **Todo** |  **P0**  |  **3**   | **Booking** | **user**  | 11/12      | 12/12       |
 | ↳ Tính năng gửi đánh giá sao & nhận xét sau khi hoàn thành chuyến đi     |      Mobile      |   Todo   |    P0    |    3     | Booking     | user      | 11/12      | 12/12       |
 | **[EPIC] Mạng Xã Hội Du Lịch (Mini Travel Feed)**                        | **API / Mobile** | **Todo** |  **P1**  |  **6**   | **Social**  | **user**  | 13/12      | 15/12       |
