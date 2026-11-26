@@ -27,20 +27,21 @@ class SanitizeAndValidateRequestMiddleware
         // 1. Ép buộc response trả về định dạng JSON chuẩn cho mọi API
         $request->headers->set('Accept', 'application/json');
 
-        // 2. Kiểm tra kích thước payload (chặn payload quá lớn bất thường > 10MB trên API JSON)
+        // 2. Kiểm tra kích thước payload (25MB cho media upload, 10MB cho API JSON thông thường)
         $contentLength = (int) $request->header('Content-Length', 0);
-        if ($contentLength > 10 * 1024 * 1024) {
+        $maxBytes = $request->is('api/v1/media/*') ? 25 * 1024 * 1024 : 10 * 1024 * 1024;
+        if ($contentLength > $maxBytes) {
             return response()->json([
                 'success' => false,
-                'message' => 'Dữ liệu gửi lên vượt quá dung lượng cho phép (tối đa 10MB).',
+                'message' => 'Dữ liệu gửi lên vượt quá dung lượng cho phép.',
             ], 413);
         }
 
-        // 3. Làm sạch đệ quy toàn bộ input từ body và query
-        $input = $request->all();
+        // 3. Làm sạch đệ quy các trường text từ body/query (không can thiệp tệp tin multipart)
+        $input = $request->input();
         if (! empty($input)) {
             $sanitized = $this->sanitizeArray($input);
-            $request->replace($sanitized);
+            $request->merge($sanitized);
         }
 
         return $next($request);

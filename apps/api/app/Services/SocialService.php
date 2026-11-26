@@ -203,12 +203,16 @@ class SocialService
                 $serviceType = $service?->type;
             }
 
+            $cleanContent = trim((string) ($data['content'] ?? ''));
+
             $post = Post::query()->create([
                 'user_id' => $user->id,
-                'content' => trim((string) $data['content']),
+                'content' => $cleanContent !== '' ? $cleanContent : null,
                 'location_name' => isset($data['location_name']) && trim((string) $data['location_name']) !== ''
                     ? trim((string) $data['location_name'])
                     : null,
+                'latitude' => $data['latitude'] ?? null,
+                'longitude' => $data['longitude'] ?? null,
                 'service_id' => $data['service_id'] ?? null,
                 'service_type' => $serviceType,
                 'visibility' => $data['visibility'] ?? 'public',
@@ -227,9 +231,11 @@ class SocialService
 
             // Đồng bộ hashtags từ mảng tags + tự động tách #hashtag trong nội dung
             $rawTags = $data['tags'] ?? [];
-            preg_match_all('/#([\p{L}\p{N}_]+)/u', (string) $data['content'], $matches);
-            if (! empty($matches[1])) {
-                $rawTags = array_merge($rawTags, $matches[1]);
+            if ($cleanContent !== '') {
+                preg_match_all('/#([\p{L}\p{N}_]+)/u', $cleanContent, $matches);
+                if (! empty($matches[1])) {
+                    $rawTags = array_merge($rawTags, $matches[1]);
+                }
             }
 
             $tagIds = [];
@@ -272,6 +278,98 @@ class SocialService
         ]);
 
         return $this->formatPost($post, $user, [], [], []);
+    }
+
+    /**
+     * Cập nhật nội dung, địa điểm, dịch vụ gắn kèm, hashtag & quyền riêng tư bài viết của chính chủ.
+     */
+    public function updatePost(User $user, int $postId, array $data): array
+    {
+        $post = Post::query()->find($postId);
+        if (! $post) {
+            throw new NotFoundHttpException('Không tìm thấy bài viết.');
+        }
+
+        if ($post->user_id !== $user->id && $user->role !== 'admin') {
+            throw new AccessDeniedHttpException('Bạn không có quyền chỉnh sửa bài viết này.');
+        }
+
+        DB::transaction(function () use ($post, $data) {
+            $updates = [];
+
+            if (array_key_exists('content', $data)) {
+                $clean = trim((string) ($data['content'] ?? ''));
+                $updates['content'] = $clean !== '' ? $clean : null;
+            }
+
+            if (array_key_exists('location_name', $data)) {
+                $loc = trim((string) ($data['location_name'] ?? ''));
+                $updates['location_name'] = $loc !== '' ? $loc : null;
+            }
+
+            if (array_key_exists('visibility', $data)) {
+                $updates['visibility'] = $data['visibility'];
+            }
+
+            if (array_key_exists('service_id', $data)) {
+                $serviceId = $data['service_id'];
+                $updates['service_id'] = $serviceId;
+                $updates['service_type'] = $serviceId
+                    ? Service::query()->whereKey($serviceId)->value('type')
+                    : null;
+            }
+
+            if (! empty($updates)) {
+                $post->update($updates);
+            }
+
+            if (array_key_exists('tags', $data) || array_key_exists('content', $data)) {
+                $rawTags = $data['tags'] ?? [];
+                $contentForTags = (string) ($post->fresh()->content ?? '');
+                if ($contentForTags !== '') {
+                    preg_match_all('/#([\p{L}\p{N}_]+)/u', $contentForTags, $matches);
+                    if (! empty($matches[1])) {
+                        $rawTags = array_merge($rawTags, $matches[1]);
+                    }
+                }
+
+                $tagIds = [];
+                foreach ($rawTags as $rawTag) {
+                    $display = ltrim(trim((string) $rawTag), '#');
+                    $slug = Str::of($display)->ascii()->lower()->replaceMatches('/[^a-z0-9_]+/', '')->value();
+                    if ($slug === '' || strlen($slug) > 100) {
+                        continue;
+                    }
+                    $tag = Tag::query()->firstOrCreate(
+                        ['name' => $slug],
+                        [
+                            'display_name' => $display !== '' ? Str::limit($display, 100, '') : $slug,
+                            'type' => 'general',
+                            'posts_count' => 0,
+                        ]
+                    );
+                    if (! in_array($tag->id, $tagIds, true)) {
+                        $tagIds[] = $tag->id;
+                    }
+                }
+
+                $post->tags()->sync($tagIds);
+            }
+        });
+
+        $post = $post->fresh()->load([
+            'user:id,email,role,social_active',
+            'user.socialProfile:id,user_id,username,display_name,avatar_url,is_verified',
+            'user.touristProfile:id,user_id,name',
+            'media',
+            'tags:id,name,display_name',
+            'service:id,name,type,base_price,price_unit',
+        ]);
+
+        $likedIds = DB::table('likes')->where('user_id', $user->id)->where('post_id', $post->id)->pluck('post_id')->map(fn ($v) => (int) $v)->all();
+        $savedIds = DB::table('saved_posts')->where('user_id', $user->id)->where('post_id', $post->id)->pluck('post_id')->map(fn ($v) => (int) $v)->all();
+
+        return $this->formatPost($post, $user, $likedIds, $savedIds, []);
     }
 
     /**
