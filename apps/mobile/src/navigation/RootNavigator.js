@@ -13,6 +13,7 @@ import BookingDetailScreen from "../features/booking/screens/BookingDetailScreen
 import SepayPaymentScreen from "../features/booking/screens/SepayPaymentScreen";
 import PaymentSuccessScreen from "../features/booking/screens/PaymentSuccessScreen";
 import ProfileScreen from "../features/tourist/screens/ProfileScreen";
+import SocialAppScreen from "../features/social/screens/SocialAppScreen";
 import ToursScreen from "../features/tour/screens/ToursScreen";
 import DetailScreen from "../features/tour/screens/DetailScreen";
 
@@ -78,6 +79,11 @@ export default function RootNavigator() {
         options={{ headerShown: false }}
       />
       <Stack.Screen name="Profile" component={ProfileScreen} options={{ headerShown: false }} />
+      <Stack.Screen
+        name="SocialApp"
+        component={SocialAppScreen}
+        options={{ headerShown: false, animation: "slide_from_right" }}
+      />
       <Stack.Screen name="Auth" component={AuthScreen} />
     </Stack.Navigator>
   );
