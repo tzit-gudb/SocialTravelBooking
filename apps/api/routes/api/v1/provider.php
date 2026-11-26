@@ -2,9 +2,11 @@
 
 use App\Http\Controllers\Api\V1\Provider\HotelRoomTypeController;
 use App\Http\Controllers\Api\V1\Provider\KycController;
+use App\Http\Controllers\Api\V1\Provider\ProviderBankAccountController;
 use App\Http\Controllers\Api\V1\Provider\ProviderBookingController;
 use App\Http\Controllers\Api\V1\Provider\ProviderCampaignController;
 use App\Http\Controllers\Api\V1\Provider\ProviderProfileController;
+use App\Http\Controllers\Api\V1\Provider\ProviderWalletController;
 use App\Http\Controllers\Api\V1\Provider\ServiceAvailabilityController;
 use App\Http\Controllers\Api\V1\Provider\ServiceController;
 use Illuminate\Support\Facades\Route;
@@ -17,7 +19,24 @@ Route::get('/ping', function () {
 // ── Provider Profile & Wallet Endpoints ─────────────────────────
 Route::get('/profile', [ProviderProfileController::class, 'show']);
 Route::put('/profile', [ProviderProfileController::class, 'update']);
-Route::post('/wallet/activate', [ProviderProfileController::class, 'activateWallet']);
+
+Route::prefix('bank-accounts')->group(function () {
+    Route::get('/', [ProviderBankAccountController::class, 'index']);
+    Route::post('/', [ProviderBankAccountController::class, 'store']);
+    Route::put('/{id}', [ProviderBankAccountController::class, 'update'])->whereNumber('id');
+    Route::patch('/{id}/default', [ProviderBankAccountController::class, 'setDefault'])->whereNumber('id');
+    Route::delete('/{id}', [ProviderBankAccountController::class, 'destroy'])->whereNumber('id');
+});
+
+Route::prefix('wallet')->group(function () {
+    Route::get('/', [ProviderWalletController::class, 'show']);
+    Route::get('/transactions', [ProviderWalletController::class, 'transactions']);
+    Route::get('/withdrawals', [ProviderWalletController::class, 'withdrawals']);
+    Route::post('/withdraw', [ProviderWalletController::class, 'withdraw']);
+    Route::post('/withdrawals/{id}/confirm-receipt', [ProviderWalletController::class, 'confirmReceipt'])->whereNumber('id');
+    Route::post('/withdrawals/{id}/report-issue', [ProviderWalletController::class, 'reportIssue'])->whereNumber('id');
+    Route::post('/activate', [ProviderProfileController::class, 'activateWallet']);
+});
 
 // ── Provider KYC & Onboarding Endpoints ─────────────────────────
 Route::prefix('kyc')->group(function () {
