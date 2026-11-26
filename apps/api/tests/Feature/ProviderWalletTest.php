@@ -3,10 +3,10 @@
 namespace Tests\Feature;
 
 use App\Enums\ProviderStatus;
+use App\Enums\ServiceStatus;
 use App\Enums\UserRole;
 use App\Models\Booking;
 use App\Models\BusinessType;
-use App\Models\Category;
 use App\Models\Location;
 use App\Models\ProviderBankAccount;
 use App\Models\ProviderProfile;
@@ -41,21 +41,23 @@ class ProviderWalletTest extends TestCase
         $user = User::create([
             'firebase_uid' => 'uid_wallet_'.Str::random(10),
             'email' => 'wallet_'.Str::random(8).'@example.com',
+            'password' => bcrypt('password'),
             'role' => UserRole::Provider->value,
-            'is_active' => true,
+            'status' => 'active',
         ]);
 
         $admin = User::create([
             'firebase_uid' => 'uid_admin_'.Str::random(10),
             'email' => 'admin_'.Str::random(8).'@example.com',
+            'password' => bcrypt('password'),
             'role' => UserRole::Admin->value,
-            'is_active' => true,
+            'status' => 'active',
         ]);
 
-        $businessType = BusinessType::first() ?? BusinessType::create([
+        $businessType = BusinessType::create([
+            'type' => 'Chỗ ở',
             'name' => 'Khách sạn '.Str::random(4),
-            'slug' => 'khach-san-'.Str::random(4),
-            'is_active' => true,
+            'slug' => 'khach-san-'.Str::random(6),
         ]);
 
         $provider = ProviderProfile::create([
@@ -65,30 +67,26 @@ class ProviderWalletTest extends TestCase
             'business_type_id' => $businessType->id,
             'phone' => '0909123456',
             'address' => 'Đà Nẵng',
-            'status' => ProviderStatus::Approved,
+            'status' => ProviderStatus::Approved->value,
         ]);
 
-        $location = Location::first() ?? Location::create([
-            'name' => 'Đà Nẵng',
-            'slug' => 'da-nang-'.Str::random(4),
-            'type' => 'city',
-        ]);
-
-        $category = Category::first() ?? Category::create([
-            'name' => 'Lưu trú',
-            'slug' => 'luu-tru-'.Str::random(4),
+        $location = Location::create([
+            'name' => 'Đà Nẵng '.Str::random(4),
+            'slug' => 'da-nang-'.Str::random(6),
+            'is_popular' => true,
         ]);
 
         $service = Service::create([
             'provider_id' => $provider->id,
             'location_id' => $location->id,
-            'category_id' => $category->id,
             'type' => 'hotel',
             'name' => 'Phòng Deluxe View Biển',
             'slug' => 'phong-deluxe-'.Str::random(6),
+            'description' => 'Phòng view biển test ví Provider',
+            'address' => 'Đà Nẵng',
             'base_price' => 1000000,
             'price_unit' => 'night',
-            'status' => 'active',
+            'status' => ServiceStatus::Active->value,
         ]);
 
         return compact('user', 'provider', 'service', 'admin');
