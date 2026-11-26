@@ -1,4 +1,61 @@
+import { manipulateAsync, SaveFormat } from "expo-image-manipulator";
 import apiClient from "../../../lib/apiClient";
+
+/**
+ * Nén và chuẩn hóa ảnh về JPEG dung lượng nhẹ trước khi tải lên Server,
+ * tránh lỗi vượt giới hạn upload_max_filesize (2MB) hoặc định dạng HEIC từ điện thoại.
+ */
+async function prepareImageForUpload(asset, maxWidth = 1280) {
+  const uri = asset?.uri;
+  if (!uri) {
+    throw new Error("Không tìm thấy tệp hình ảnh để tải lên.");
+  }
+
+  try {
+    const actions =
+      typeof asset?.width === "number" && asset.width > 0 && asset.width <= maxWidth
+        ? []
+        : [{ resize: { width: maxWidth } }];
+
+    const result = await manipulateAsync(uri, actions, {
+      compress: 0.72,
+      format: SaveFormat.JPEG,
+    });
+
+    return {
+      uri: result.uri,
+      name: `stb_${Date.now()}_${Math.random().toString(36).slice(2, 7)}.jpg`,
+      type: "image/jpeg",
+    };
+  } catch {
+    const rawName = asset?.fileName || uri.split("/").pop() || `stb_${Date.now()}.jpg`;
+    const hasValidExt = /\.(jpe?g|png|webp)$/i.test(rawName);
+    const safeName = hasValidExt ? rawName : `${rawName.replace(/\.[^.]+$/, "")}.jpg`;
+    const lower = safeName.toLowerCase();
+    const safeMime = lower.endsWith(".png")
+      ? "image/png"
+      : lower.endsWith(".webp")
+        ? "image/webp"
+        : "image/jpeg";
+
+    return {
+      uri,
+      name: safeName,
+      type: safeMime,
+    };
+  }
+}
+
+async function uploadSingleMedia(type, asset, maxWidth) {
+  const filePart = await prepareImageForUpload(asset, maxWidth);
+  const response = await apiClient.uploadFile("/media/upload", {
+    uri: filePart.uri,
+    fieldName: "file",
+    mimeType: filePart.type,
+    parameters: { type },
+  });
+  return response?.data || null;
+}
 
 /**
  * Service giao tiếp API cho phân hệ Mạng xã hội Du lịch (/api/v1/social/*).
@@ -10,21 +67,7 @@ export const socialService = {
   },
 
   async uploadAvatar(asset) {
-    const formData = new FormData();
-    formData.append("type", "avatar");
-    const uri = asset?.uri;
-    const fileName = asset?.fileName || uri?.split("/").pop() || `avatar_${Date.now()}.jpg`;
-    const mimeType =
-      asset?.mimeType || (fileName.toLowerCase().endsWith(".png") ? "image/png" : "image/jpeg");
-
-    formData.append("file", {
-      uri,
-      name: fileName,
-      type: mimeType,
-    });
-
-    const response = await apiClient.post("/media/upload", formData);
-    return response?.data || null;
+    return uploadSingleMedia("avatar", asset, 600);
   },
 
   async setupProfile(payload) {
@@ -67,17 +110,61 @@ export const socialService = {
     };
   },
 
-  async createPost({ content, location_name, service_id, tags = [], media_urls = [] }) {
+  async uploadPostImages(assets = []) {
+    const validAssets = Array.isArray(assets) ? assets.filter((a) => a?.uri) : [];
+    if (validAssets.length === 0) return [];
+
+    const uploadedUrls = [];
+    for (const asset of validAssets) {
+      const uploaded = await uploadSingleMedia("post", asset, 1280);
+      if (uploaded?.url) {
+        uploadedUrls.push(uploaded.url);
+      }
+    }
+    return uploadedUrls;
+  },
+
+  async getLocations() {
+    const response = await apiClient.get("/public/locations");
+    return Array.isArray(response?.data) ? response.data : [];
+  },
+
+  async searchServices(q = "") {
+    const params = new URLSearchParams();
+    if (String(q || "").trim()) params.append("q", String(q).trim());
+    params.append("per_page", "8");
+    const response = await apiClient.get(`/public/services?${params.toString()}`);
+    return Array.isArray(response?.data) ? response.data : [];
+  },
+
+  async createPost({
+    content = "",
+    location_name,
+    service_id,
+    visibility = "public",
+    tags = [],
+    media_urls = [],
+  }) {
+    const cleanContent = String(content || "").trim();
     const response = await apiClient.post("/social/posts", {
-      content: String(content || "").trim(),
+      content: cleanContent || null,
       location_name: String(location_name || "").trim() || null,
       service_id: service_id || null,
+      visibility,
       tags,
       media_urls,
     });
     return {
       data: response?.data || null,
       message: response?.message || "Đã đăng bài viết thành công.",
+    };
+  },
+
+  async updatePost(postId, payload) {
+    const response = await apiClient.put(`/social/posts/${postId}`, payload);
+    return {
+      data: response?.data || null,
+      message: response?.message || "Đã cập nhật bài viết.",
     };
   },
 
