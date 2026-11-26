@@ -20,8 +20,10 @@ import {
   CreditCard,
   Mail,
   MapPin,
+  MessageSquareQuote,
   Phone,
   ShieldCheck,
+  Star,
   User,
   XCircle,
 } from "lucide-react-native";
@@ -33,6 +35,7 @@ import { colors, radius, spacing } from "../../../theme/tokens";
 import { formatCurrencyVnd, getServiceTypeLabel } from "../../explore/models/exploreModel";
 import BookingStatusBadge from "../components/BookingStatusBadge";
 import CancelBookingModal from "../components/CancelBookingModal";
+import ReviewModal from "../components/ReviewModal";
 import TouristQrTicketCard from "../../tourist/components/TouristQrTicketCard";
 import {
   canCancelBooking,
@@ -53,6 +56,9 @@ export default function BookingDetailScreen({ navigation, route }) {
   const [cancelModalVisible, setCancelModalVisible] = useState(false);
   const [cancelling, setCancelling] = useState(false);
   const [confirmingCheckIn, setConfirmingCheckIn] = useState(false);
+  const [requestingCheckout, setRequestingCheckout] = useState(false);
+  const [reviewModalVisible, setReviewModalVisible] = useState(false);
+  const [submittingReview, setSubmittingReview] = useState(false);
   const [remainingSeconds, setRemainingSeconds] = useState(0);
 
   const loadDetail = useCallback(
@@ -107,6 +113,7 @@ export default function BookingDetailScreen({ navigation, route }) {
           ...prev,
           status: payload?.status || prev.status,
           checked_in_at: payload?.checked_in_at ?? prev.checked_in_at,
+          checkout_requested_at: payload?.checkout_requested_at ?? prev.checkout_requested_at,
           cancelled_at: payload?.cancelled_at ?? prev.cancelled_at,
           cancel_reason: payload?.cancel_reason ?? prev.cancel_reason,
         };
@@ -209,6 +216,62 @@ export default function BookingDetailScreen({ navigation, route }) {
   const roomType = booking?.room_type || booking?.roomType;
   const showCancelButton = isAuthenticated && canCancelBooking(booking);
   const showConfirmCheckInButton = isAuthenticated && booking?.status === "confirmed";
+  const showRequestCheckoutButton =
+    isAuthenticated && booking?.status === "checked_in" && !booking?.checkout_requested_at;
+  const existingReview = booking?.review || booking?.service_review || null;
+  const canReviewBooking = isAuthenticated && booking?.status === "completed";
+
+  const handleRequestCheckoutPress = () => {
+    if (!booking?.id || requestingCheckout) return;
+    Alert.alert(
+      "Kết thúc chuyến đi",
+      "Bạn xác nhận đã hoàn tất trải nghiệm / trả phòng / trả phương tiện? Nhà cung cấp dịch vụ sẽ xác nhận hoàn thành đơn.",
+      [
+        { text: "Chưa", style: "cancel" },
+        {
+          text: "Kết thúc chuyến đi",
+          onPress: async () => {
+            setRequestingCheckout(true);
+            try {
+              const result = await bookingService.requestCheckout(booking.id);
+              setBooking((prev) => ({
+                ...prev,
+                ...result.data,
+                checkout_requested_at:
+                  result.data?.checkout_requested_at || new Date().toISOString(),
+              }));
+              Alert.alert("Đã gửi yêu cầu", result.message);
+            } catch (err) {
+              Alert.alert("Không thể thực hiện", err?.message || "Vui lòng thử lại sau.");
+            } finally {
+              setRequestingCheckout(false);
+            }
+          },
+        },
+      ],
+    );
+  };
+
+  const handleSubmitReview = async (reviewPayload) => {
+    if (!booking?.id || submittingReview) return;
+    setSubmittingReview(true);
+    try {
+      const result = await bookingService.submitReview(booking.id, reviewPayload);
+      const createdReview = result?.data?.review || reviewPayload;
+      setReviewModalVisible(false);
+      setBooking((prev) => ({
+        ...prev,
+        review: createdReview,
+        service_review: createdReview,
+        has_review: true,
+      }));
+      Alert.alert("Thành công", result.message);
+    } catch (err) {
+      Alert.alert("Không thể gửi đánh giá", err?.message || "Vui lòng thử lại sau.");
+    } finally {
+      setSubmittingReview(false);
+    }
+  };
 
   return (
     <SafeAreaView style={styles.safeArea} edges={["top", "bottom"]}>
@@ -498,11 +561,84 @@ export default function BookingDetailScreen({ navigation, route }) {
                 </AppText>
               </View>
             </View>
+
+            {/* Trạng thái chờ NCC xác nhận hoàn thành sau khi bấm Kết thúc chuyến đi */}
+            {booking.status === "checked_in" && booking.checkout_requested_at ? (
+              <View style={styles.escrowNote}>
+                <Clock size={16} color="#0369A1" />
+                <AppText style={styles.escrowNoteText}>
+                  Bạn đã bấm Kết thúc chuyến đi. Đang chờ Nhà cung cấp dịch vụ xác nhận hoàn thành
+                  để mở tính năng đánh giá.
+                </AppText>
+              </View>
+            ) : null}
+
+            {/* Đánh giá của du khách (nếu đã gửi cho dịch vụ này) */}
+            {existingReview ? (
+              <View style={styles.card}>
+                <View style={styles.reviewHeaderRow}>
+                  <AppText style={styles.sectionTitle}>Đánh giá của bạn</AppText>
+                  <View style={styles.reviewStarPill}>
+                    <Star size={12} color="#F59E0B" fill="#F59E0B" />
+                    <AppText style={styles.reviewStarText}>{existingReview.rating}/5</AppText>
+                  </View>
+                </View>
+                {existingReview.cleanliness_rating ||
+                existingReview.service_rating ||
+                existingReview.location_rating ||
+                existingReview.value_rating ? (
+                  <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6 }}>
+                    {existingReview.cleanliness_rating ? (
+                      <AppText style={styles.reviewEmptyText}>
+                        Vệ sinh: {existingReview.cleanliness_rating}/5
+                      </AppText>
+                    ) : null}
+                    {existingReview.service_rating ? (
+                      <AppText style={styles.reviewEmptyText}>
+                        · Phục vụ: {existingReview.service_rating}/5
+                      </AppText>
+                    ) : null}
+                    {existingReview.location_rating ? (
+                      <AppText style={styles.reviewEmptyText}>
+                        · Vị trí: {existingReview.location_rating}/5
+                      </AppText>
+                    ) : null}
+                    {existingReview.value_rating ? (
+                      <AppText style={styles.reviewEmptyText}>
+                        · Giá trị: {existingReview.value_rating}/5
+                      </AppText>
+                    ) : null}
+                  </View>
+                ) : null}
+                {existingReview.pros ? (
+                  <AppText style={styles.reviewContentText}>Ưu điểm: {existingReview.pros}</AppText>
+                ) : null}
+                {existingReview.cons ? (
+                  <AppText style={styles.reviewContentText}>
+                    Cần cải thiện: {existingReview.cons}
+                  </AppText>
+                ) : null}
+                {existingReview.content ? (
+                  <AppText style={styles.reviewContentText}>{existingReview.content}</AppText>
+                ) : null}
+                {existingReview.provider_reply ? (
+                  <View style={styles.replyBox}>
+                    <View style={styles.replyHeader}>
+                      <MessageSquareQuote size={13} color={colors.brandPrimary} />
+                      <AppText style={styles.replyLabel}>Phản hồi từ Nhà cung cấp</AppText>
+                    </View>
+                    <AppText style={styles.replyText}>{existingReview.provider_reply}</AppText>
+                  </View>
+                ) : null}
+              </View>
+            ) : null}
           </ScrollView>
 
           {(booking.status === "pending_payment" ||
             showCancelButton ||
-            showConfirmCheckInButton) && (
+            showConfirmCheckInButton ||
+            showRequestCheckoutButton ||
+            canReviewBooking) && (
             <View style={styles.bottomBar}>
               {showCancelButton ? (
                 <Pressable
@@ -528,6 +664,33 @@ export default function BookingDetailScreen({ navigation, route }) {
                 </Pressable>
               ) : null}
 
+              {showRequestCheckoutButton ? (
+                <Pressable
+                  style={[styles.payBtn, requestingCheckout && { opacity: 0.7 }]}
+                  onPress={handleRequestCheckoutPress}
+                  disabled={requestingCheckout}
+                >
+                  {requestingCheckout ? (
+                    <ActivityIndicator size="small" color="#FFFFFF" />
+                  ) : (
+                    <CheckCircle2 size={17} color="#FFFFFF" />
+                  )}
+                  <AppText style={styles.payBtnText}>Kết thúc chuyến đi</AppText>
+                </Pressable>
+              ) : null}
+
+              {canReviewBooking ? (
+                <Pressable
+                  style={[styles.payBtn, { backgroundColor: "#F59E0B" }]}
+                  onPress={() => setReviewModalVisible(true)}
+                >
+                  <Star size={17} color="#FFFFFF" fill="#FFFFFF" />
+                  <AppText style={styles.payBtnText}>
+                    {existingReview ? "Chỉnh sửa đánh giá" : "Đánh giá dịch vụ"}
+                  </AppText>
+                </Pressable>
+              ) : null}
+
               {booking.status === "pending_payment" ? (
                 <Pressable style={styles.payBtn} onPress={handlePayDepositPress}>
                   <CreditCard size={17} color="#FFFFFF" />
@@ -547,6 +710,15 @@ export default function BookingDetailScreen({ navigation, route }) {
         loading={cancelling}
         onClose={() => setCancelModalVisible(false)}
         onConfirm={handleConfirmCancel}
+      />
+
+      <ReviewModal
+        visible={reviewModalVisible}
+        serviceName={service?.name}
+        initialReview={existingReview}
+        loading={submittingReview}
+        onClose={() => setReviewModalVisible(false)}
+        onSubmit={handleSubmitReview}
       />
     </SafeAreaView>
   );
@@ -882,5 +1054,60 @@ const styles = StyleSheet.create({
     fontSize: 14.5,
     fontWeight: "700",
     color: "#FFFFFF",
+  },
+  reviewHeaderRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 8,
+  },
+  reviewStarPill: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    backgroundColor: "#FFFBEB",
+    borderWidth: 1,
+    borderColor: "#FDE68A",
+    borderRadius: 999,
+    paddingHorizontal: 9,
+    paddingVertical: 4,
+  },
+  reviewStarText: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: "#B45309",
+  },
+  reviewContentText: {
+    fontSize: 13.5,
+    lineHeight: 20,
+    color: colors.inkBody,
+  },
+  reviewEmptyText: {
+    fontSize: 12.5,
+    fontStyle: "italic",
+    color: colors.inkMuted,
+  },
+  replyBox: {
+    backgroundColor: "#F0F9FF",
+    borderRadius: 12,
+    padding: 10,
+    gap: 4,
+    borderWidth: 1,
+    borderColor: "#BAE6FD",
+  },
+  replyHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+  },
+  replyLabel: {
+    fontSize: 11.5,
+    fontWeight: "700",
+    color: colors.brandPrimary,
+  },
+  replyText: {
+    fontSize: 12.5,
+    lineHeight: 18,
+    color: colors.inkPrimary,
   },
 });

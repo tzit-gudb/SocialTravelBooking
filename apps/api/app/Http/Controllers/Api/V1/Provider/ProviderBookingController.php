@@ -83,6 +83,7 @@ class ProviderBookingController extends Controller
             'booking_code' => $b->booking_code,
             'status' => $b->status,
             'checked_in_at' => $b->checked_in_at?->toIso8601String(),
+            'checkout_requested_at' => $b->checkout_requested_at?->toIso8601String(),
             'payment_expires_at' => $b->payment_expires_at?->toIso8601String(),
             'start_date' => $b->start_date?->format('Y-m-d'),
             'end_date' => $b->end_date?->format('Y-m-d'),
@@ -195,6 +196,37 @@ class ProviderBookingController extends Controller
                 'booking' => $booking,
                 'released_amount' => $result['released_amount'],
             ],
+        ]);
+    }
+
+    /**
+     * POST /api/v1/provider/bookings/{id}/complete
+     * Nhà cung cấp xác nhận hoàn thành chuyến đi / trả phòng -> Chuyển đơn sang completed.
+     */
+    public function complete(Request $request, int $id): JsonResponse
+    {
+        $provider = $request->user()?->providerProfile;
+        if (! $provider) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Tài khoản chưa có hồ sơ Nhà cung cấp dịch vụ.',
+            ], 403);
+        }
+
+        $booking = Booking::where('id', $id)->where('provider_id', $provider->id)->first();
+        if (! $booking) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Không tìm thấy đơn đặt chỗ thuộc cơ sở của bạn.',
+            ], 404);
+        }
+
+        $completed = $this->bookingService->completeBookingByProvider($provider, $booking);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Đã xác nhận hoàn thành chuyến đi! Du khách đã có thể gửi đánh giá dịch vụ.',
+            'data' => $completed,
         ]);
     }
 }

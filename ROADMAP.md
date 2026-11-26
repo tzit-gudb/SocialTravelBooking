@@ -91,8 +91,8 @@
 | **[EPIC] Cơ chế Ký quỹ Escrow & Ví Provider**                            |  **API / Web**   | **Done** |  **P0**  |  **5**   | **Payment** | **admin** | 09/12      | 11/12       |
 | ↳ Check-in quét QR / User xác nhận -> Tự động giải phóng tiền cọc vào ví |       API        |   Done   |    P0    |    3     | Payment     | general   | 09/12      | 10/12       |
 | ↳ Provider Dashboard: Quản lý số dư ví & Lịch sử giao dịch               |       Web        |   Done   |    P1    |    2     | Payment     | provider  | 10/12      | 11/12       |
-| **[EPIC] Đánh giá Dịch vụ (Review & Rating)**                            | **API / Mobile** | **Todo** |  **P0**  |  **3**   | **Booking** | **user**  | 11/12      | 12/12       |
-| ↳ Tính năng gửi đánh giá sao & nhận xét sau khi hoàn thành chuyến đi     |      Mobile      |   Todo   |    P0    |    3     | Booking     | user      | 11/12      | 12/12       |
+| **[EPIC] Đánh giá Dịch vụ (Review & Rating)**                            | **API / Mobile** | **Done** |  **P0**  |  **3**   | **Booking** | **user**  | 11/12      | 12/12       |
+| ↳ Tính năng gửi đánh giá sao & nhận xét sau khi hoàn thành chuyến đi     |      Mobile      |   Done   |    P0    |    3     | Booking     | user      | 11/12      | 12/12       |
 | **[EPIC] Mạng Xã Hội Du Lịch (Mini Travel Feed)**                        | **API / Mobile** | **Todo** |  **P1**  |  **6**   | **Social**  | **user**  | 13/12      | 15/12       |
 | ↳ Tạo bài viết trải nghiệm (Nội dung, upload ảnh, tag địa điểm)          |      Mobile      |   Todo   |    P1    |    3     | Social      | user      | 13/12      | 14/12       |
 | ↳ Trang Bảng tin (Feed) khám phá bài viết & Thả tim/Tương tác            |      Mobile      |   Todo   |    P1    |    3     | Social      | user      | 14/12      | 15/12       |

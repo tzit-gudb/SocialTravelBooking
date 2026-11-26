@@ -19,6 +19,7 @@ import ProviderDashboardPage from "../features/provider/pages/ProviderDashboardP
 import ProviderBookingsPage from "../features/provider/pages/ProviderBookingsPage";
 import ProviderQrCheckinPage from "../features/provider/pages/ProviderQrCheckinPage";
 import ProviderWalletPage from "../features/provider/pages/ProviderWalletPage";
+import ProviderReviewsPage from "../features/provider/pages/ProviderReviewsPage";
 import ProviderProfilePage from "../features/provider/pages/ProviderProfilePage";
 import ServiceManagementPage from "../features/provider/pages/ServiceManagementPage";
 import ProviderCampaignsPage from "../features/provider/pages/ProviderCampaignsPage";
@@ -355,6 +356,16 @@ export default function AppRouter() {
           element={
             <ProtectedRoute allowedRoles={["provider", "admin"]}>
               <ProviderWalletPage />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* 3d. Quản lý Đánh giá từ du khách (EPIC #31) */}
+        <Route
+          path="/provider/reviews"
+          element={
+            <ProtectedRoute allowedRoles={["provider", "admin"]}>
+              <ProviderReviewsPage />
             </ProtectedRoute>
           }
         />

@@ -4,6 +4,7 @@ use App\Http\Controllers\Api\V1\Public\CatalogController;
 use App\Http\Controllers\Api\V1\Tourist\TouristBookingController;
 use App\Http\Controllers\Api\V1\Tourist\TouristPaymentController;
 use App\Http\Controllers\Api\V1\Tourist\TouristProfileController;
+use App\Http\Controllers\Api\V1\Tourist\TouristReviewController;
 use Illuminate\Support\Facades\Route;
 
 // Tourist routes: /api/v1/tourist/...
@@ -23,6 +24,8 @@ Route::prefix('bookings')->group(function () {
     Route::get('/{id}', [TouristBookingController::class, 'show'])->whereNumber('id');
     Route::post('/{id}/cancel', [TouristBookingController::class, 'cancel'])->whereNumber('id');
     Route::post('/{id}/confirm-checkin', [TouristBookingController::class, 'confirmCheckIn'])->whereNumber('id');
+    Route::post('/{id}/request-checkout', [TouristBookingController::class, 'requestCheckout'])->whereNumber('id');
+    Route::post('/{id}/review', [TouristReviewController::class, 'store'])->whereNumber('id');
     Route::post('/{id}/payment/sepay', [TouristPaymentController::class, 'createSepayQr'])->whereNumber('id');
     Route::get('/{id}/payment/status', [TouristPaymentController::class, 'paymentStatus'])->whereNumber('id');
 });

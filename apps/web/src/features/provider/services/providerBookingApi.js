@@ -18,6 +18,10 @@ const providerBookingApi = {
   async checkInByQr(qrData) {
     return apiClient.post("/provider/bookings/check-in", { qr_data: qrData });
   },
+
+  async completeBooking(id) {
+    return apiClient.post(`/provider/bookings/${id}/complete`, {});
+  },
 };
 
 export default providerBookingApi;

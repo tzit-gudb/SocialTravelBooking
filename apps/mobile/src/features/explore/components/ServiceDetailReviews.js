@@ -65,6 +65,34 @@ export default function ServiceDetailReviews({ ratingAvg = 0, reviewsCount = 0, 
                   </View>
                 </View>
 
+                {rev.cleanliness_rating ||
+                rev.service_rating ||
+                rev.location_rating ||
+                rev.value_rating ? (
+                  <View style={styles.subRatingsRow}>
+                    {rev.cleanliness_rating ? (
+                      <AppText style={styles.subRatingChip}>
+                        Vệ sinh {rev.cleanliness_rating}/5
+                      </AppText>
+                    ) : null}
+                    {rev.service_rating ? (
+                      <AppText style={styles.subRatingChip}>Phục vụ {rev.service_rating}/5</AppText>
+                    ) : null}
+                    {rev.location_rating ? (
+                      <AppText style={styles.subRatingChip}>Vị trí {rev.location_rating}/5</AppText>
+                    ) : null}
+                    {rev.value_rating ? (
+                      <AppText style={styles.subRatingChip}>Giá trị {rev.value_rating}/5</AppText>
+                    ) : null}
+                  </View>
+                ) : null}
+
+                {rev.pros ? (
+                  <AppText style={styles.reviewContent}>Ưu điểm: {rev.pros}</AppText>
+                ) : null}
+                {rev.cons ? (
+                  <AppText style={styles.reviewContent}>Cần cải thiện: {rev.cons}</AppText>
+                ) : null}
                 {rev.content ? <AppText style={styles.reviewContent}>{rev.content}</AppText> : null}
 
                 {rev.provider_reply ? (
@@ -191,6 +219,20 @@ const styles = StyleSheet.create({
     fontSize: 13.5,
     lineHeight: 20,
     color: colors.inkBody,
+  },
+  subRatingsRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 6,
+  },
+  subRatingChip: {
+    fontSize: 11,
+    fontWeight: "600",
+    color: colors.inkBody,
+    backgroundColor: "#E2E8F0",
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 999,
   },
   replyBox: {
     backgroundColor: "#F0F9FF",

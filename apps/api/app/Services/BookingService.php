@@ -8,6 +8,7 @@ use App\Events\BookingUpdated;
 use App\Models\Booking;
 use App\Models\Coupon;
 use App\Models\HotelRoomType;
+use App\Models\ProviderProfile;
 use App\Models\Service;
 use App\Models\ServiceAvailability;
 use App\Models\ServicePromotion;
@@ -337,6 +338,75 @@ class BookingService
         $this->broadcastBookingUpdatedSafely($cancelled, 'cancelled');
 
         return $cancelled;
+    }
+
+    /**
+     * Du khách gửi yêu cầu kết thúc chuyến đi / trả phòng / trả phương tiện (Check-out).
+     */
+    public function requestCheckoutByTourist(User $tourist, Booking $booking): Booking
+    {
+        if ((int) $booking->user_id !== (int) $tourist->id) {
+            abort(403, 'Bạn không có quyền thao tác trên đơn đặt chỗ này.');
+        }
+
+        $updated = DB::transaction(function () use ($booking) {
+            $locked = Booking::where('id', $booking->id)->lockForUpdate()->firstOrFail();
+
+            if ($locked->status === 'completed') {
+                return $locked->fresh();
+            }
+
+            if ($locked->status !== 'checked_in') {
+                throw ValidationException::withMessages([
+                    'status' => ['Chỉ có thể yêu cầu kết thúc chuyến đi khi đơn đang ở trạng thái đã check-in.'],
+                ]);
+            }
+
+            if ($locked->checkout_requested_at === null) {
+                $locked->update(['checkout_requested_at' => now()]);
+            }
+
+            return $locked->fresh();
+        });
+
+        $this->broadcastBookingUpdatedSafely($updated, 'checkout_requested');
+
+        return $updated;
+    }
+
+    /**
+     * Nhà cung cấp dịch vụ xác nhận hoàn thành chuyến đi / trả phòng -> Chuyển đơn sang completed.
+     */
+    public function completeBookingByProvider(ProviderProfile $provider, Booking $booking): Booking
+    {
+        if ((int) $booking->provider_id !== (int) $provider->id) {
+            abort(403, 'Bạn không có quyền xác nhận hoàn thành đơn đặt chỗ của cơ sở khác.');
+        }
+
+        $completed = DB::transaction(function () use ($booking) {
+            $locked = Booking::where('id', $booking->id)->lockForUpdate()->firstOrFail();
+
+            if ($locked->status === 'completed') {
+                return $locked->fresh();
+            }
+
+            if ($locked->status !== 'checked_in') {
+                throw ValidationException::withMessages([
+                    'status' => ['Chỉ có thể xác nhận hoàn thành khi đơn đang ở trạng thái đã check-in.'],
+                ]);
+            }
+
+            $locked->update([
+                'status' => 'completed',
+                'checkout_requested_at' => $locked->checkout_requested_at ?? now(),
+            ]);
+
+            return $locked->fresh(['service:id,name,type', 'roomType:id,name']);
+        });
+
+        $this->broadcastBookingUpdatedSafely($completed, 'completed');
+
+        return $completed;
     }
 
     private function broadcastBookingUpdatedSafely(?Booking $booking, string $action): void

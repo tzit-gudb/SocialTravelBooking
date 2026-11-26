@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { Image, Pressable, StyleSheet, View } from "react-native";
-import { Calendar, Clock, MapPin, ChevronRight } from "lucide-react-native";
+import { Calendar, Clock, MapPin, ChevronRight, Star } from "lucide-react-native";
 import AppText from "../../../components/common/AppText";
 import { resolveMediaUrl } from "../../../lib/apiClient";
 import { colors, radius, spacing } from "../../../theme/tokens";
@@ -98,6 +98,28 @@ export default function BookingCard({ booking, onPress }) {
           </AppText>
         </View>
       ) : null}
+
+      {booking?.status === "completed" && (
+        <View
+          style={[
+            styles.reviewHintRow,
+            booking?.has_review ? styles.reviewDoneRow : styles.reviewPendingRow,
+          ]}
+        >
+          <Star
+            size={13}
+            color={booking?.has_review ? "#047857" : "#B45309"}
+            fill={booking?.has_review ? "#047857" : "transparent"}
+          />
+          <AppText
+            style={[styles.reviewHintText, { color: booking?.has_review ? "#047857" : "#B45309" }]}
+          >
+            {booking?.has_review
+              ? "Đã đánh giá dịch vụ · Chạm để xem/sửa"
+              : "Chạm để đánh giá trải nghiệm dịch vụ"}
+          </AppText>
+        </View>
+      )}
 
       <View style={styles.footer}>
         <View>
@@ -216,6 +238,24 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: "600",
     color: "#B45309",
+  },
+  reviewHintRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+    borderRadius: 10,
+  },
+  reviewPendingRow: {
+    backgroundColor: "#FFFBEB",
+  },
+  reviewDoneRow: {
+    backgroundColor: "#ECFDF5",
+  },
+  reviewHintText: {
+    fontSize: 12,
+    fontWeight: "600",
   },
   footer: {
     flexDirection: "row",

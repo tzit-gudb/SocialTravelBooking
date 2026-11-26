@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\V1\Provider\ProviderBankAccountController;
 use App\Http\Controllers\Api\V1\Provider\ProviderBookingController;
 use App\Http\Controllers\Api\V1\Provider\ProviderCampaignController;
 use App\Http\Controllers\Api\V1\Provider\ProviderProfileController;
+use App\Http\Controllers\Api\V1\Provider\ProviderReviewController;
 use App\Http\Controllers\Api\V1\Provider\ProviderWalletController;
 use App\Http\Controllers\Api\V1\Provider\ServiceAvailabilityController;
 use App\Http\Controllers\Api\V1\Provider\ServiceController;
@@ -76,5 +77,12 @@ Route::prefix('campaigns')->group(function () {
 Route::prefix('bookings')->group(function () {
     Route::get('/', [ProviderBookingController::class, 'index']);
     Route::post('/check-in', [ProviderBookingController::class, 'checkInByQr']);
+    Route::post('/{id}/complete', [ProviderBookingController::class, 'complete'])->whereNumber('id');
     Route::get('/{id}', [ProviderBookingController::class, 'show'])->whereNumber('id');
+});
+
+// ── Provider Reviews Management (EPIC #31) ──────────────────────
+Route::prefix('reviews')->group(function () {
+    Route::get('/', [ProviderReviewController::class, 'index']);
+    Route::post('/{id}/reply', [ProviderReviewController::class, 'reply'])->whereNumber('id');
 });

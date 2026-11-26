@@ -62,6 +62,47 @@ export const bookingService = {
     };
   },
 
+  async requestCheckout(bookingId) {
+    const response = await apiClient.post(`/tourist/bookings/${bookingId}/request-checkout`, {});
+    return {
+      data: response?.data || null,
+      message:
+        response?.message ||
+        "Đã gửi yêu cầu kết thúc chuyến đi! Đang chờ Nhà cung cấp dịch vụ xác nhận.",
+    };
+  },
+
+  async submitReview(
+    bookingId,
+    {
+      rating,
+      cleanliness_rating,
+      service_rating,
+      location_rating,
+      value_rating,
+      pros = "",
+      cons = "",
+      is_recommended = true,
+      content = "",
+    },
+  ) {
+    const response = await apiClient.post(`/tourist/bookings/${bookingId}/review`, {
+      rating: Number(rating),
+      cleanliness_rating: cleanliness_rating ? Number(cleanliness_rating) : undefined,
+      service_rating: service_rating ? Number(service_rating) : undefined,
+      location_rating: location_rating ? Number(location_rating) : undefined,
+      value_rating: value_rating ? Number(value_rating) : undefined,
+      pros: String(pros || "").trim() || undefined,
+      cons: String(cons || "").trim() || undefined,
+      is_recommended: Boolean(is_recommended),
+      content: String(content || "").trim() || undefined,
+    });
+    return {
+      data: response?.data || null,
+      message: response?.message || "Cảm ơn bạn đã gửi đánh giá dịch vụ!",
+    };
+  },
+
   async cancelGuestBooking(bookingCode, contactPhone, cancelReason = "") {
     const code = encodeURIComponent(
       String(bookingCode || "")

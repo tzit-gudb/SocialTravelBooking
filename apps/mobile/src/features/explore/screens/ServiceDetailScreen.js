@@ -19,6 +19,7 @@ import {
 import AppText from "../../../components/common/AppText";
 import Skeleton from "../../../components/common/Skeleton";
 import { colors, radius, spacing, touchTarget } from "../../../theme/tokens";
+import { echo } from "../../../lib/echo";
 import exploreService from "../services/exploreService";
 import {
   formatCurrencyVnd,
@@ -109,6 +110,21 @@ export default function ServiceDetailScreen({ navigation, route }) {
   useEffect(() => {
     loadDetail();
   }, [loadDetail]);
+
+  useEffect(() => {
+    if (!serviceId) return undefined;
+
+    const channelName = `service.${serviceId}.reviews`;
+    const channel = echo.channel(channelName);
+
+    channel.listen(".review.updated", () => {
+      loadDetail();
+    });
+
+    return () => {
+      echo.leaveChannel(channelName);
+    };
+  }, [serviceId, loadDetail]);
 
   useEffect(() => {
     if (route?.params?.selectedRoomId) {
