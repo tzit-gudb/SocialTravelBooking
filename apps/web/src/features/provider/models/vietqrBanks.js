@@ -1,0 +1,18 @@
+export const VIETQR_BANKS = [
+  { code: "TPB", name: "TPBank" },
+  { code: "VCB", name: "Vietcombank" },
+  { code: "TCB", name: "Techcombank" },
+  { code: "MB", name: "MB Bank" },
+  { code: "ICB", name: "VietinBank" },
+  { code: "BIDV", name: "BIDV" },
+  { code: "ACB", name: "ACB" },
+  { code: "VPB", name: "VPBank" },
+  { code: "STB", name: "Sacombank" },
+  { code: "VIB", name: "VIB" },
+  { code: "SHB", name: "SHB" },
+  { code: "MSB", name: "MSB" },
+  { code: "HDB", name: "HDBank" },
+  { code: "OCB", name: "OCB" },
+  { code: "VBA", name: "Agribank" },
+  { code: "EIB", name: "Eximbank" },
+];

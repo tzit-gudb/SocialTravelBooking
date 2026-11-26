@@ -11,6 +11,7 @@ import ProviderProfileMetrics from "../components/ProviderProfileMetrics";
 import ProviderAvatarUploader from "../components/ProviderAvatarUploader";
 import ProviderInfoForm from "../components/ProviderInfoForm";
 import ProviderWalletActivation from "../components/ProviderWalletActivation";
+import ProviderBankAccountsManager from "../components/ProviderBankAccountsManager";
 import ProviderSecurityForm from "../components/ProviderSecurityForm";
 
 /**
@@ -21,9 +22,11 @@ export default function ProviderProfilePage() {
   const { user, updateUser } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
 
-  // Tab điều hướng đồng bộ URL: 'profile' | 'wallet' | 'security'
+  // Tab điều hướng đồng bộ URL: 'profile' | 'wallet' | 'bank-accounts' | 'security'
   const tabParam = searchParams.get("tab");
-  const activeTab = ["profile", "wallet", "security"].includes(tabParam) ? tabParam : "profile";
+  const activeTab = ["profile", "wallet", "bank-accounts", "security"].includes(tabParam)
+    ? tabParam
+    : "profile";
 
   useEffect(() => {
     if (!searchParams.has("tab")) {
@@ -270,6 +273,18 @@ export default function ProviderProfilePage() {
 
               <button
                 type="button"
+                onClick={() => setActiveTab("bank-accounts")}
+                className={`pb-3 px-4 text-sm font-semibold border-b-2 transition-all cursor-pointer whitespace-nowrap ${
+                  activeTab === "bank-accounts"
+                    ? "border-brand-primary text-brand-primary"
+                    : "border-transparent text-ink-subtle hover:text-ink-primary"
+                }`}
+              >
+                Tài khoản ngân hàng
+              </button>
+
+              <button
+                type="button"
                 onClick={() => setActiveTab("security")}
                 className={`pb-3 px-4 text-sm font-semibold border-b-2 transition-all cursor-pointer whitespace-nowrap ${
                   activeTab === "security"
@@ -299,6 +314,8 @@ export default function ProviderProfilePage() {
                   feedback={walletFeedback}
                 />
               )}
+
+              {activeTab === "bank-accounts" && <ProviderBankAccountsManager />}
 
               {activeTab === "security" && (
                 <ProviderSecurityForm
