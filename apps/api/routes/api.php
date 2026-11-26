@@ -20,6 +20,11 @@ Route::prefix('v1')->group(function () {
         ->middleware(['firebase.auth', 'role:tourist,admin'])
         ->group(base_path('routes/api/v1/tourist.php'));
 
+    // Social Community routes: /api/v1/social/... (Yêu cầu xác thực)
+    Route::prefix('social')
+        ->middleware(['firebase.auth'])
+        ->group(base_path('routes/api/v1/social.php'));
+
     // Provider routes: /api/v1/provider/... (Yêu cầu xác thực + Role Provider hoặc Admin)
     Route::prefix('provider')
         ->middleware(['firebase.auth', 'role:provider,admin'])
