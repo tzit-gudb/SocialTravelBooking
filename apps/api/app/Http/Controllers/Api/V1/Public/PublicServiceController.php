@@ -11,6 +11,7 @@ use App\Models\Service;
 use App\Models\ServiceInclusion;
 use App\Models\ServicePromotion;
 use App\Services\BookingService;
+use App\Services\ReviewService;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -18,7 +19,8 @@ use Illuminate\Http\Request;
 class PublicServiceController extends Controller
 {
     public function __construct(
-        private readonly BookingService $bookingService
+        private readonly BookingService $bookingService,
+        private readonly ReviewService $reviewService
     ) {}
 
     private function resolveActivePromotion(Service $service): ?array
@@ -413,7 +415,11 @@ class PublicServiceController extends Controller
                     ->where('is_blocked', false)
                     ->orderBy('available_date')
                     ->limit(30),
-                'reviews' => fn ($rv) => $rv->with('user:id,name,avatar_url')->latest()->limit(10),
+                'reviews' => fn ($rv) => $rv->with([
+                    'user:id,email',
+                    'user.touristProfile:id,user_id,name',
+                    'user.socialProfile:id,user_id,display_name,avatar_url',
+                ])->latest()->limit(10),
                 'policies:id,name,slug,category,rule_key,rule_config,icon,description',
                 'promotions.holidayCampaign',
             ])
@@ -442,5 +448,31 @@ class PublicServiceController extends Controller
                 'policy_rules' => $this->bookingService->extractPolicyRules($service),
             ]),
         ]);
+    }
+
+    /**
+     * GET /api/v1/public/services/{id}/reviews
+     * Danh sách đánh giá công khai của 1 dịch vụ (có lọc theo sao & phân trang).
+     */
+    public function reviews(Request $request, int $id): JsonResponse
+    {
+        $exists = Service::query()
+            ->where('id', $id)
+            ->where('status', ServiceStatus::Active->value)
+            ->exists();
+
+        if (! $exists) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Không tìm thấy dịch vụ.',
+            ], 404);
+        }
+
+        $result = $this->reviewService->listPublicServiceReviews($id, [
+            'rating' => $request->query('rating'),
+            'per_page' => $request->query('per_page', 15),
+        ]);
+
+        return response()->json(array_merge(['success' => true], $result));
     }
 }

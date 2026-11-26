@@ -54,7 +54,8 @@ Route::prefix('public')->group(function () {
 
     // Khám phá & Tìm kiếm Dịch vụ công khai (Task #19)
     Route::get('/services', [PublicServiceController::class, 'index']);
-    Route::get('/services/{id}', [PublicServiceController::class, 'show']);
+    Route::get('/services/{id}', [PublicServiceController::class, 'show'])->whereNumber('id');
+    Route::get('/services/{id}/reviews', [PublicServiceController::class, 'reviews'])->whereNumber('id');
 
     // Bài đăng cộng đồng nổi bật (Task #19)
     Route::get('/posts/featured', [PublicPostController::class, 'featured']);

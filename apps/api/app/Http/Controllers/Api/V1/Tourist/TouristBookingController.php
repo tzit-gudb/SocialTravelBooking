@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Tourist\PreviewBookingRequest;
 use App\Http\Requests\Tourist\StoreBookingRequest;
 use App\Models\Booking;
+use App\Models\Review;
 use App\Services\BookingService;
 use App\Services\EscrowService;
 use Illuminate\Http\JsonResponse;
@@ -49,7 +50,12 @@ class TouristBookingController extends Controller
 
         $paginated = $query->paginate($perPage);
 
-        $items = $paginated->getCollection()->map(function (Booking $booking) {
+        $reviewedServiceIds = Review::query()
+            ->where('user_id', $request->user()->id)
+            ->pluck('service_id')
+            ->all();
+
+        $items = $paginated->getCollection()->map(function (Booking $booking) use ($reviewedServiceIds) {
             $cover = $booking->service?->media->firstWhere('is_cover', true)
                 ?? $booking->service?->media->first();
 
@@ -59,6 +65,7 @@ class TouristBookingController extends Controller
                 'qr_checkin_token' => $booking->qr_checkin_token,
                 'status' => $booking->status,
                 'checked_in_at' => $booking->checked_in_at?->toIso8601String(),
+                'checkout_requested_at' => $booking->checkout_requested_at?->toIso8601String(),
                 'payment_expires_at' => $booking->payment_expires_at?->toIso8601String(),
                 'start_date' => $booking->start_date?->format('Y-m-d'),
                 'end_date' => $booking->end_date?->format('Y-m-d'),
@@ -99,7 +106,7 @@ class TouristBookingController extends Controller
                     'rank' => $booking->roomType->rank,
                 ] : null,
                 'latest_payment' => $booking->latestPayment,
-                'has_review' => $booking->review !== null,
+                'has_review' => $booking->review !== null || in_array($booking->service_id, $reviewedServiceIds, true),
             ];
         });
 
@@ -175,6 +182,13 @@ class TouristBookingController extends Controller
         }
 
         $data = $booking->toArray();
+        if ($request->user() && empty($data['review']) && $booking->service_id) {
+            $serviceReview = Review::query()
+                ->where('service_id', $booking->service_id)
+                ->where('user_id', $request->user()->id)
+                ->first();
+            $data['service_review'] = $serviceReview?->toArray();
+        }
         $data['policy_rules'] = $booking->service
             ? $this->bookingService->extractPolicyRules($booking->service)
             : null;
@@ -232,6 +246,13 @@ class TouristBookingController extends Controller
         }
 
         $data = $booking->toArray();
+        if ($request->user() && empty($data['review']) && $booking->service_id) {
+            $serviceReview = Review::query()
+                ->where('service_id', $booking->service_id)
+                ->where('user_id', $request->user()->id)
+                ->first();
+            $data['service_review'] = $serviceReview?->toArray();
+        }
         $data['policy_rules'] = $booking->service
             ? $this->bookingService->extractPolicyRules($booking->service)
             : null;
@@ -330,6 +351,29 @@ class TouristBookingController extends Controller
             'success' => true,
             'message' => 'Đã xác nhận nhận dịch vụ thành công!',
             'data' => $result['booking'],
+        ]);
+    }
+
+    /**
+     * POST /api/v1/tourist/bookings/{id}/request-checkout
+     * Du khách bấm "Kết thúc chuyến đi" để thông báo Nhà cung cấp xác nhận hoàn thành.
+     */
+    public function requestCheckout(Request $request, int $id): JsonResponse
+    {
+        $booking = Booking::where('id', $id)->where('user_id', $request->user()->id)->first();
+        if (! $booking) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Không tìm thấy đơn đặt chỗ.',
+            ], 404);
+        }
+
+        $updated = $this->bookingService->requestCheckoutByTourist($request->user(), $booking);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Đã gửi yêu cầu kết thúc chuyến đi! Đang chờ Nhà cung cấp dịch vụ xác nhận hoàn thành.',
+            'data' => $updated,
         ]);
     }
 }
