@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import { AlertCircle, Eye, Search } from "lucide-react";
+import { AlertCircle, CheckCircle2, Eye, Search } from "lucide-react";
 import ProviderLayout from "../layouts/ProviderLayout";
 import Typography from "../../../components/ui/Typography";
 import { Skeleton } from "../../../components/ui/Skeleton";
@@ -61,6 +61,8 @@ export default function ProviderBookingsPage() {
   const [errorMsg, setErrorMsg] = useState("");
   const [detailBooking, setDetailBooking] = useState(null);
   const [isLoadingDetail, setIsLoadingDetail] = useState(false);
+  const [completingId, setCompletingId] = useState(null);
+  const [successMsg, setSuccessMsg] = useState("");
   const detailBookingIdRef = useRef(null);
 
   useEffect(() => {
@@ -105,6 +107,7 @@ export default function ProviderBookingsPage() {
                 ...item,
                 status: payload.status || item.status,
                 checked_in_at: payload.checked_in_at ?? item.checked_in_at,
+                checkout_requested_at: payload.checkout_requested_at ?? item.checkout_requested_at,
                 cancelled_at: payload.cancelled_at ?? item.cancelled_at,
                 cancel_reason: payload.cancel_reason ?? item.cancel_reason,
               }
@@ -150,12 +153,38 @@ export default function ProviderBookingsPage() {
     }
   };
 
+  const handleCompleteBooking = async (bookingId) => {
+    if (!bookingId || completingId) return;
+    setCompletingId(bookingId);
+    setErrorMsg("");
+    try {
+      const res = await providerBookingApi.completeBooking(bookingId);
+      setSuccessMsg(res?.message || "Đã xác nhận hoàn thành chuyến đi!");
+      setTimeout(() => setSuccessMsg(""), 4500);
+      if (detailBooking?.id === bookingId) {
+        setDetailBooking((prev) => ({ ...prev, ...(res?.data || {}), status: "completed" }));
+      }
+      await loadBookings();
+    } catch (err) {
+      setErrorMsg(err?.message || "Không thể xác nhận hoàn thành đơn đặt chỗ.");
+    } finally {
+      setCompletingId(null);
+    }
+  };
+
   return (
     <ProviderLayout
       title="Đơn đặt chỗ của khách"
       subtitle="Theo dõi đơn đặt phòng, tour, lịch trình check-in và trạng thái thanh toán cọc."
     >
       <div className="space-y-5">
+        {successMsg && (
+          <div className="p-3.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-sm font-medium flex items-center gap-2">
+            <CheckCircle2 className="w-4 h-4 shrink-0" />
+            <span>{successMsg}</span>
+          </div>
+        )}
+
         {errorMsg && (
           <div className="p-3.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-sm flex items-center gap-2">
             <AlertCircle className="w-4 h-4 shrink-0" />
@@ -308,16 +337,36 @@ export default function ProviderBookingsPage() {
                           >
                             {badge.label}
                           </span>
+                          {b.status === "checked_in" && b.checkout_requested_at ? (
+                            <span className="mt-1 inline-flex px-2 py-0.5 rounded-full text-[11px] font-semibold bg-amber-50 text-amber-800 border border-amber-200">
+                              Khách yêu cầu kết thúc
+                            </span>
+                          ) : null}
                         </td>
-                        <td className="py-4 px-4 sm:px-6 text-right">
-                          <button
-                            type="button"
-                            onClick={() => handleViewDetail(b)}
-                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border-subtle bg-surface-base hover:bg-slate-100 text-xs font-semibold text-ink-primary cursor-pointer"
-                          >
-                            <Eye className="w-3.5 h-3.5" />
-                            <span>Chi tiết</span>
-                          </button>
+                        <td className="py-4 px-4 sm:px-6 text-right whitespace-nowrap">
+                          <div className="inline-flex items-center gap-1.5">
+                            {b.status === "checked_in" ? (
+                              <button
+                                type="button"
+                                disabled={completingId === b.id}
+                                onClick={() => handleCompleteBooking(b.id)}
+                                className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white text-xs font-semibold cursor-pointer"
+                              >
+                                <CheckCircle2 className="w-3.5 h-3.5" />
+                                <span>
+                                  {completingId === b.id ? "Đang xử lý..." : "Hoàn thành"}
+                                </span>
+                              </button>
+                            ) : null}
+                            <button
+                              type="button"
+                              onClick={() => handleViewDetail(b)}
+                              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border-subtle bg-surface-base hover:bg-slate-100 text-xs font-semibold text-ink-primary cursor-pointer"
+                            >
+                              <Eye className="w-3.5 h-3.5" />
+                              <span>Chi tiết</span>
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     );
@@ -332,6 +381,8 @@ export default function ProviderBookingsPage() {
       <ProviderBookingDetailModal
         booking={detailBooking}
         isLoadingDetail={isLoadingDetail}
+        isCompleting={Boolean(detailBooking && completingId === detailBooking.id)}
+        onCompleteBooking={handleCompleteBooking}
         onClose={() => setDetailBooking(null)}
       />
     </ProviderLayout>

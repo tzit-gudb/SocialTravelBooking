@@ -22,7 +22,13 @@ function formatDateVi(iso) {
 /**
  * Modal xem chi tiết Đơn đặt chỗ dành cho Nhà cung cấp (Provider).
  */
-export default function ProviderBookingDetailModal({ booking, isLoadingDetail = false, onClose }) {
+export default function ProviderBookingDetailModal({
+  booking,
+  isLoadingDetail = false,
+  isCompleting = false,
+  onCompleteBooking,
+  onClose,
+}) {
   if (!booking && !isLoadingDetail) return null;
 
   const payments = Array.isArray(booking?.payments) ? booking.payments : [];
@@ -195,6 +201,29 @@ export default function ProviderBookingDetailModal({ booking, isLoadingDetail = 
             </div>
           </div>
         )}
+
+        {!isLoadingDetail && booking?.status === "checked_in" ? (
+          <div className="px-6 py-4 border-t border-border-subtle bg-slate-50 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="text-xs text-ink-body">
+              {booking.checkout_requested_at ? (
+                <span className="font-semibold text-amber-800">
+                  Khách du lịch đã bấm Kết thúc chuyến đi. Vui lòng xác nhận hoàn thành đơn.
+                </span>
+              ) : (
+                <span>Đơn đã check-in. Xác nhận hoàn thành khi khách kết thúc dịch vụ.</span>
+              )}
+            </div>
+            <button
+              type="button"
+              disabled={isCompleting}
+              onClick={() => onCompleteBooking?.(booking.id)}
+              className="inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white text-xs sm:text-sm font-semibold cursor-pointer shrink-0"
+            >
+              <CheckCircle2 className="w-4 h-4" />
+              <span>{isCompleting ? "Đang xử lý..." : "Xác nhận hoàn thành"}</span>
+            </button>
+          </div>
+        ) : null}
       </div>
     </div>
   );
