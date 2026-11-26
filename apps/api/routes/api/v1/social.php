@@ -16,6 +16,7 @@ Route::post('/users/{userId}/follow', [SocialProfileController::class, 'toggleFo
 // ── Bảng tin & Bài viết (Feed & Posts) ────────────────────────────
 Route::get('/posts', [SocialPostController::class, 'index']);
 Route::post('/posts', [SocialPostController::class, 'store']);
+Route::put('/posts/{id}', [SocialPostController::class, 'update'])->whereNumber('id');
 Route::delete('/posts/{id}', [SocialPostController::class, 'destroy'])->whereNumber('id');
 
 // ── Tương tác bài viết (Like, Save, Comment) ──────────────────────

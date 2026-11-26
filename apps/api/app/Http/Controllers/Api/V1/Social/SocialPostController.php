@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\V1\Social;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Social\StorePostRequest;
+use App\Http\Requests\Social\UpdatePostRequest;
 use App\Models\User;
 use App\Services\SocialService;
 use Illuminate\Http\JsonResponse;
@@ -52,6 +53,22 @@ class SocialPostController extends Controller
             'message' => 'Đã đăng bài viết lên cộng đồng.',
             'data' => $post,
         ], 201);
+    }
+
+    /**
+     * PUT /api/v1/social/posts/{id}
+     */
+    public function update(UpdatePostRequest $request, int $id): JsonResponse
+    {
+        /** @var User $user */
+        $user = $request->user() ?? $request->attributes->get('userModel');
+        $post = $this->socialService->updatePost($user, $id, $request->validated());
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Đã cập nhật bài viết.',
+            'data' => $post,
+        ]);
     }
 
     /**

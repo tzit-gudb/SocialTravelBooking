@@ -5,12 +5,15 @@ import {
   Bookmark,
   Compass,
   Heart,
+  Lock,
   MapPin,
   MessageCircle,
   Send,
   Trash2,
+  Users,
 } from "lucide-react-native";
 import AppText from "../../../components/common/AppText";
+import { resolveMediaUrl } from "../../../lib/apiClient";
 import { colors, radius, spacing } from "../../../theme/tokens";
 import { formatRelativeTime } from "../../explore/models/exploreModel";
 import SocialAvatar from "./SocialAvatar";
@@ -73,6 +76,11 @@ export default function SocialPostCard({
               </AppText>
               {post?.author?.is_verified ? <BadgeCheck size={15} color="#0284C7" /> : null}
               <AppText style={styles.timeText}>· {formatRelativeTime(post?.created_at)}</AppText>
+              {post?.visibility === "followers" ? (
+                <Users size={12} color="#64748B" />
+              ) : post?.visibility === "private" ? (
+                <Lock size={12} color="#64748B" />
+              ) : null}
             </View>
             <AppText style={styles.handleText} numberOfLines={1}>
               @{authorHandle}
@@ -125,7 +133,11 @@ export default function SocialPostCard({
 
         {/* Hình ảnh đính kèm */}
         {mediaList.length === 1 ? (
-          <Image source={{ uri: mediaList[0].url }} style={styles.singleImage} resizeMode="cover" />
+          <Image
+            source={{ uri: resolveMediaUrl(mediaList[0].url) }}
+            style={styles.singleImage}
+            resizeMode="cover"
+          />
         ) : null}
 
         {mediaList.length > 1 ? (
@@ -137,7 +149,7 @@ export default function SocialPostCard({
             {mediaList.map((media, idx) => (
               <Image
                 key={String(media.id || idx)}
-                source={{ uri: media.url }}
+                source={{ uri: resolveMediaUrl(media.url) }}
                 style={styles.galleryImage}
                 resizeMode="cover"
               />

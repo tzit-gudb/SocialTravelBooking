@@ -41,8 +41,8 @@ class SetupSocialProfileRequest extends FormRequest
             ],
             'display_name' => ['required', 'string', 'min:2', 'max:100'],
             'bio' => ['nullable', 'string', 'max:300'],
-            'avatar_url' => ['nullable', 'url', 'max:500'],
-            'cover_photo_url' => ['nullable', 'url', 'max:500'],
+            'avatar_url' => ['nullable', 'string', 'max:500', 'regex:/^(https?:\/\/|\/storage\/)/i'],
+            'cover_photo_url' => ['nullable', 'string', 'max:500', 'regex:/^(https?:\/\/|\/storage\/)/i'],
             'website_url' => ['nullable', 'url', 'max:255'],
         ];
     }
@@ -59,7 +59,7 @@ class SetupSocialProfileRequest extends FormRequest
             'display_name.min' => 'Tên hiển thị cần tối thiểu 2 ký tự.',
             'display_name.max' => 'Tên hiển thị không được vượt quá 100 ký tự.',
             'bio.max' => 'Tiểu sử không được vượt quá 300 ký tự.',
-            'avatar_url.url' => 'Đường dẫn ảnh đại diện chưa hợp lệ.',
+            'avatar_url.regex' => 'Đường dẫn ảnh đại diện chưa hợp lệ.',
             'website_url.url' => 'Đường dẫn liên kết cá nhân chưa hợp lệ.',
         ];
     }

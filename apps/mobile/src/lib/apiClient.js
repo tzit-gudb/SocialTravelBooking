@@ -1,4 +1,5 @@
 import { Platform } from "react-native";
+import { File, UploadTask, UploadType } from "expo-file-system";
 
 /**
  * Tự động xác định URL kết nối tới Laravel Backend API:
@@ -174,11 +175,84 @@ async function request(endpoint, options = {}) {
   return payload;
 }
 
+/**
+ * Tải tệp tin multipart qua Expo SDK 57 UploadTask (tránh lỗi Unsupported FormDataPart của fetch).
+ */
+async function uploadFile(
+  endpoint,
+  { uri, fieldName = "file", mimeType = "image/jpeg", parameters = {}, headers = {}, token } = {},
+) {
+  const activeToken = token || mobileSessionStore.getToken();
+  const url = endpoint.startsWith("http")
+    ? endpoint
+    : `${API_BASE_URL}${endpoint.startsWith("/") ? endpoint : `/${endpoint}`}`;
+
+  const requestHeaders = {
+    Accept: "application/json",
+    "X-Platform": "mobile",
+    ...headers,
+  };
+  if (activeToken) {
+    requestHeaders.Authorization = `Bearer ${activeToken}`;
+  }
+
+  let result;
+  const file = new File(uri);
+  const task = new UploadTask(file, url, {
+    httpMethod: "POST",
+    uploadType: UploadType.MULTIPART,
+    fieldName,
+    mimeType,
+    parameters,
+    headers: requestHeaders,
+    sessionType: "foreground",
+  });
+
+  try {
+    result = await task.uploadAsync();
+  } catch (netErr) {
+    console.error(`[Mobile API Upload Error] POST ${url}:`, netErr);
+    const netError = new Error(
+      "Không thể tải tệp tin lên máy chủ. Vui lòng kiểm tra kết nối mạng và thử lại.",
+    );
+    netError.status = 0;
+    netError.endpoint = endpoint;
+    throw netError;
+  } finally {
+    try {
+      task.release?.();
+    } catch {
+      // Bỏ qua nếu native handle đã được giải phóng
+    }
+  }
+
+  let payload = null;
+  try {
+    payload = result?.body ? JSON.parse(result.body) : null;
+  } catch {
+    payload = null;
+  }
+
+  const status = Number(result?.status || 0);
+  if (status < 200 || status >= 300) {
+    console.error(`[Mobile API Error] POST ${url} [HTTP ${status}]:`, payload || result?.body);
+    const friendlyReason = resolveFriendlyErrorMessage(status, payload);
+    const apiError = new Error(friendlyReason);
+    apiError.status = status;
+    apiError.endpoint = endpoint;
+    apiError.errors = payload?.errors || null;
+    throw apiError;
+  }
+
+  return payload;
+}
+
 const apiClient = {
   get: (endpoint, options = {}) => request(endpoint, { ...options, method: "GET" }),
   post: (endpoint, body, options = {}) => request(endpoint, { ...options, method: "POST", body }),
   put: (endpoint, body, options = {}) => request(endpoint, { ...options, method: "PUT", body }),
   delete: (endpoint, options = {}) => request(endpoint, { ...options, method: "DELETE" }),
+  uploadFile,
 };
 
 export default apiClient;

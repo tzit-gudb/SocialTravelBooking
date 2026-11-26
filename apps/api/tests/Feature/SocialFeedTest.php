@@ -2,9 +2,18 @@
 
 namespace Tests\Feature;
 
+use App\Enums\ProviderStatus;
+use App\Enums\ServiceStatus;
+use App\Enums\UserRole;
+use App\Models\BusinessType;
+use App\Models\Location;
+use App\Models\ProviderProfile;
+use App\Models\Service;
 use App\Models\User;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
@@ -171,5 +180,115 @@ class SocialFeedTest extends TestCase
         $this->getJson('/api/v1/social/profile/me')
             ->assertOk()
             ->assertJsonPath('data.profile.posts_count', 0);
+    }
+
+    public function test_upload_post_images_create_photo_post_with_location_service_and_edit_post(): void
+    {
+        Storage::fake('public');
+
+        $alice = $this->createTourist('alice_t34');
+        $bob = $this->createTourist('bob_t34');
+
+        // Tạo service fixture độc lập cho CI
+        $providerUser = User::create([
+            'firebase_uid' => 'uid_soc_prov_'.Str::random(8),
+            'email' => 'soc-prov-'.Str::random(6).'@example.com',
+            'password' => Hash::make('Secret@123'),
+            'role' => UserRole::Provider->value,
+            'status' => 'active',
+        ]);
+        $businessType = BusinessType::create([
+            'type' => 'Chỗ ở',
+            'name' => 'Resort '.Str::random(4),
+            'slug' => 'resort-soc-'.Str::random(6),
+        ]);
+        $provider = ProviderProfile::create([
+            'user_id' => $providerUser->id,
+            'business_name' => 'Resort Social '.Str::random(4),
+            'business_type_id' => $businessType->id,
+            'status' => ProviderStatus::Approved->value,
+        ]);
+        $location = Location::create([
+            'name' => 'Phú Quốc '.Str::random(4),
+            'slug' => 'phu-quoc-soc-'.Str::random(6),
+            'is_popular' => true,
+        ]);
+        $service = Service::create([
+            'provider_id' => $provider->id,
+            'location_id' => $location->id,
+            'type' => 'hotel',
+            'name' => 'Villa Biển Phú Quốc',
+            'slug' => 'villa-bien-pq-'.Str::random(6),
+            'description' => 'Villa sát biển',
+            'address' => 'Phú Quốc',
+            'base_price' => 2100000,
+            'price_unit' => 'night',
+            'status' => ServiceStatus::Active->value,
+        ]);
+
+        // Khởi tạo hồ sơ MXH cho Alice và Bob
+        Sanctum::actingAs($alice);
+        $this->postJson('/api/v1/social/profile', [
+            'username' => 'alice_t34_'.strtolower(Str::random(5)),
+            'display_name' => 'Alice Travel',
+        ])->assertCreated();
+
+        Sanctum::actingAs($bob);
+        $this->postJson('/api/v1/social/profile', [
+            'username' => 'bob_t34_'.strtolower(Str::random(5)),
+            'display_name' => 'Bob Viewer',
+        ])->assertCreated();
+
+        // 1. Alice không thể đăng bài rỗng hoàn toàn (không nội dung & không ảnh)
+        Sanctum::actingAs($alice);
+        $this->postJson('/api/v1/social/posts', [])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['content']);
+
+        // 2. Alice upload 2 ảnh bài viết qua /api/v1/media/upload (type=post)
+        $tinyPng = base64_decode(
+            'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII='
+        );
+        $uploadRes = $this->post('/api/v1/media/upload', [
+            'type' => 'post',
+            'files' => [
+                UploadedFile::fake()->createWithContent('beach1.png', $tinyPng),
+                UploadedFile::fake()->createWithContent('beach2.png', $tinyPng),
+            ],
+        ], ['Accept' => 'application/json'])->assertCreated();
+
+        $uploadedUrls = collect($uploadRes->json('data'))->pluck('url')->all();
+        $this->assertCount(2, $uploadedUrls);
+
+        // 3. Alice đăng bài chỉ có ảnh (content null), gắn địa điểm + tọa độ + dịch vụ + visibility=followers
+        $postRes = $this->postJson('/api/v1/social/posts', [
+            'location_name' => 'Bãi Sao, Phú Quốc',
+            'latitude' => 10.0567,
+            'longitude' => 104.0341,
+            'service_id' => $service->id,
+            'visibility' => 'followers',
+            'media_urls' => $uploadedUrls,
+        ])->assertCreated();
+
+        $postId = (int) $postRes->json('data.id');
+        $this->assertSame('Bãi Sao, Phú Quốc', $postRes->json('data.location_name'));
+        $this->assertSame('followers', $postRes->json('data.visibility'));
+        $this->assertSame($service->id, $postRes->json('data.service.id'));
+        $this->assertCount(2, $postRes->json('data.media'));
+
+        // 4. Alice chỉnh sửa bài viết (thêm nội dung có #hashtag & đổi sang public)
+        $this->putJson("/api/v1/social/posts/{$postId}", [
+            'content' => 'Hoàng hôn cực đỉnh tại #phuquoc #baisao',
+            'visibility' => 'public',
+        ])
+            ->assertOk()
+            ->assertJsonPath('data.visibility', 'public')
+            ->assertJsonPath('data.content', 'Hoàng hôn cực đỉnh tại #phuquoc #baisao');
+
+        // 5. Bob không được phép sửa bài của Alice -> 403
+        Sanctum::actingAs($bob);
+        $this->putJson("/api/v1/social/posts/{$postId}", [
+            'content' => 'Hack nội dung',
+        ])->assertForbidden();
     }
 }

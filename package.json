@@ -5,7 +5,7 @@
   "scripts": {
     "dev:web": "pnpm --filter @stb/web dev",
     "dev:mobile": "pnpm --filter @stb/mobile start",
-    "dev:api": "php apps/api/artisan serve --host=0.0.0.0",
+    "dev:api": "php -d upload_max_filesize=20M -d post_max_size=25M apps/api/artisan serve --host=0.0.0.0",
     "dev:reverb": "php apps/api/artisan reverb:start --debug",
     "build:web": "pnpm --filter @stb/web build",
     "lint": "pnpm -r --if-present lint",
