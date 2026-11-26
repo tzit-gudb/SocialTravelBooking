@@ -15,7 +15,14 @@ class Review extends Model
         'service_id',
         'user_id',
         'rating',
+        'cleanliness_rating',
+        'service_rating',
+        'location_rating',
+        'value_rating',
         'content',
+        'pros',
+        'cons',
+        'is_recommended',
         'images',
         'provider_reply',
         'provider_reply_at',
@@ -25,6 +32,11 @@ class Review extends Model
     {
         return [
             'rating' => 'integer',
+            'cleanliness_rating' => 'integer',
+            'service_rating' => 'integer',
+            'location_rating' => 'integer',
+            'value_rating' => 'integer',
+            'is_recommended' => 'boolean',
             'images' => 'array',
             'provider_reply_at' => 'datetime',
         ];

@@ -27,6 +27,8 @@ class BookingUpdated implements ShouldBroadcastNow
 
     public ?string $checkedInAt;
 
+    public ?string $checkoutRequestedAt;
+
     public ?string $cancelledAt;
 
     public ?string $cancelReason;
@@ -42,6 +44,7 @@ class BookingUpdated implements ShouldBroadcastNow
         $this->userId = $booking->user_id ? (int) $booking->user_id : null;
         $this->status = (string) $booking->status;
         $this->checkedInAt = $booking->checked_in_at?->toIso8601String();
+        $this->checkoutRequestedAt = $booking->checkout_requested_at?->toIso8601String();
         $this->cancelledAt = $booking->cancelled_at?->toIso8601String();
         $this->cancelReason = $booking->cancel_reason;
         $this->releasedAmount = $releasedAmount;
@@ -87,6 +90,7 @@ class BookingUpdated implements ShouldBroadcastNow
             'user_id' => $this->userId,
             'status' => $this->status,
             'checked_in_at' => $this->checkedInAt,
+            'checkout_requested_at' => $this->checkoutRequestedAt,
             'cancelled_at' => $this->cancelledAt,
             'cancel_reason' => $this->cancelReason,
             'released_amount' => $this->releasedAmount,
