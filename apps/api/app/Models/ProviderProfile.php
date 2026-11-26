@@ -59,4 +59,14 @@ class ProviderProfile extends Model
     {
         return $this->hasMany(Booking::class, 'provider_id');
     }
+
+    public function bankAccounts(): HasMany
+    {
+        return $this->hasMany(ProviderBankAccount::class, 'provider_id');
+    }
+
+    public function withdrawalRequests(): HasMany
+    {
+        return $this->hasMany(WithdrawalRequest::class, 'provider_id');
+    }
 }

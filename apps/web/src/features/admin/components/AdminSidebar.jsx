@@ -13,11 +13,13 @@ import {
   X,
   ReceiptText,
   Sparkles,
+  Banknote,
 } from "lucide-react";
 import Typography from "../../../components/ui/Typography";
 import { useAuth } from "../../../hooks/useAuth";
 import adminKycService from "../services/adminKycService";
 import adminReportApi from "../services/adminReportApi";
+import adminWithdrawalApi from "../services/adminWithdrawalApi";
 
 /**
  * Danh mục điều hướng chuẩn cho toàn bộ phân hệ Quản trị viên
@@ -53,6 +55,13 @@ const ADMIN_NAV_LINKS = [
     label: "Đơn đặt chỗ & Đối soát",
     path: "/admin/bookings",
     icon: ReceiptText,
+  },
+  {
+    id: "withdrawals",
+    label: "Chi trả & Rút tiền",
+    path: "/admin/withdrawals",
+    icon: Banknote,
+    hasWithdrawalBadge: true,
   },
   {
     id: "coupons",
@@ -95,7 +104,36 @@ export default function AdminSidebar({ pendingCount: customPendingCount }) {
 
   const [pendingCount, setPendingCount] = useState(customPendingCount ?? 0);
   const [pendingReportsCount, setPendingReportsCount] = useState(0);
+  const [pendingWithdrawalsCount, setPendingWithdrawalsCount] = useState(0);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
+  // Nạp số lượng yêu cầu rút tiền chờ chi trả / khiếu nại và đồng bộ Realtime
+  useEffect(() => {
+    let isMounted = true;
+    adminWithdrawalApi
+      .listWithdrawals({ per_page: 1 })
+      .then((res) => {
+        if (!isMounted) return;
+        if (res?.counts?.actionable !== undefined) {
+          setPendingWithdrawalsCount(res.counts.actionable);
+        }
+      })
+      .catch(() => {});
+
+    const handleRealtimeWithdrawal = (e) => {
+      const actionable = e?.detail?.actionable_count;
+      if (actionable !== undefined && actionable !== null) {
+        setPendingWithdrawalsCount(Number(actionable));
+      }
+    };
+
+    window.addEventListener("stb:withdrawal-updated", handleRealtimeWithdrawal);
+
+    return () => {
+      isMounted = false;
+      window.removeEventListener("stb:withdrawal-updated", handleRealtimeWithdrawal);
+    };
+  }, [location.pathname]);
 
   // Nạp số lượng báo cáo cộng đồng chờ xử lý theo thời gian thực
   useEffect(() => {
@@ -209,7 +247,9 @@ export default function AdminSidebar({ pendingCount: customPendingCount }) {
               ? pendingCount
               : item.hasReportBadge
                 ? pendingReportsCount
-                : item.badge;
+                : item.hasWithdrawalBadge
+                  ? pendingWithdrawalsCount
+                  : item.badge;
 
             return (
               <Link
@@ -234,7 +274,7 @@ export default function AdminSidebar({ pendingCount: customPendingCount }) {
                 {Boolean(badgeCount && Number(badgeCount) > 0) && (
                   <span
                     className={`px-2 py-0.5 rounded-full text-xs font-bold transition-colors ${
-                      item.hasKycBadge
+                      item.hasKycBadge || item.hasWithdrawalBadge
                         ? active
                           ? "bg-amber-500 text-white"
                           : "bg-amber-100 text-amber-800"

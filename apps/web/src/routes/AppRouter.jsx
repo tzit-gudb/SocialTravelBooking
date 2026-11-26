@@ -14,9 +14,11 @@ import AdminSettingsPage from "../features/admin/pages/AdminSettingsPage";
 import AdminCampaignsPage from "../features/admin/pages/AdminCampaignsPage";
 import AdminReportsPage from "../features/admin/pages/AdminReportsPage";
 import AdminBookingsPage from "../features/admin/pages/AdminBookingsPage";
+import AdminWithdrawalsPage from "../features/admin/pages/AdminWithdrawalsPage";
 import ProviderDashboardPage from "../features/provider/pages/ProviderDashboardPage";
 import ProviderBookingsPage from "../features/provider/pages/ProviderBookingsPage";
 import ProviderQrCheckinPage from "../features/provider/pages/ProviderQrCheckinPage";
+import ProviderWalletPage from "../features/provider/pages/ProviderWalletPage";
 import ProviderProfilePage from "../features/provider/pages/ProviderProfilePage";
 import ServiceManagementPage from "../features/provider/pages/ServiceManagementPage";
 import ProviderCampaignsPage from "../features/provider/pages/ProviderCampaignsPage";
@@ -258,6 +260,16 @@ export default function AppRouter() {
           }
         />
 
+        {/* 9. Chi trả & Đối soát Rút tiền Nhà cung cấp dịch vụ (Task #30) */}
+        <Route
+          path="/admin/withdrawals"
+          element={
+            <ProtectedRoute allowedRoles={["admin"]}>
+              <AdminWithdrawalsPage />
+            </ProtectedRoute>
+          }
+        />
+
         {/* Route mặc định cho /admin -> Chuyển về /admin/dashboard */}
         <Route
           path="/admin"
@@ -333,6 +345,16 @@ export default function AppRouter() {
           element={
             <ProtectedRoute allowedRoles={["provider", "admin"]}>
               <ProviderQrCheckinPage />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* 3c. Ví doanh thu & Quyết toán (Provider) */}
+        <Route
+          path="/provider/wallet"
+          element={
+            <ProtectedRoute allowedRoles={["provider", "admin"]}>
+              <ProviderWalletPage />
             </ProtectedRoute>
           }
         />

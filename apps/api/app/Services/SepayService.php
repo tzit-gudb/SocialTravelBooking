@@ -14,7 +14,8 @@ class SepayService
 {
     public function __construct(
         private readonly BookingService $bookingService,
-        private readonly EscrowService $escrowService
+        private readonly EscrowService $escrowService,
+        private readonly ProviderWalletService $providerWalletService
     ) {}
 
     /**
@@ -155,16 +156,9 @@ class SepayService
     public function handleWebhook(array $payload): array
     {
         $transferType = strtolower(trim((string) ($payload['transferType'] ?? '')));
-        if ($transferType !== 'in') {
-            return [
-                'processed' => false,
-                'ignored' => true,
-                'reason' => 'not_incoming_transfer',
-            ];
-        }
-
         $configuredAccount = trim((string) config('services.sepay.account_number', ''));
         $incomingAccount = trim((string) ($payload['accountNumber'] ?? ''));
+
         if ($configuredAccount !== '' && $incomingAccount !== '' && $incomingAccount !== $configuredAccount) {
             return [
                 'processed' => false,
@@ -176,8 +170,35 @@ class SepayService
         $sepayId = $payload['id'] ?? null;
         $referenceCode = trim((string) ($payload['referenceCode'] ?? ''));
         $transferAmount = (float) ($payload['transferAmount'] ?? 0);
+        $searchText = strtoupper(trim((string) (($payload['code'] ?? '').' '.($payload['content'] ?? '').' '.($payload['description'] ?? ''))));
 
-        $searchText = strtoupper(trim((string) (($payload['code'] ?? '').' '.($payload['content'] ?? ''))));
+        // 1. Chiều tiền ra ('out') -> Tự động đối soát chi trả lệnh rút tiền của Nhà cung cấp (WD...)
+        if ($transferType === 'out') {
+            if (! preg_match('/(?:^|[^A-Z0-9]|RUT)(WD[A-Z0-9]{6,24})(?:$|[^A-Z0-9])/', $searchText, $wdMatches)) {
+                return [
+                    'processed' => false,
+                    'ignored' => true,
+                    'reason' => 'not_incoming_transfer',
+                ];
+            }
+
+            return $this->providerWalletService->markPaidBySepayWebhook(
+                $wdMatches[1],
+                $transferAmount,
+                $referenceCode,
+                $sepayId
+            );
+        }
+
+        // 2. Chiều tiền vào ('in') -> Thanh toán cọc đơn đặt chỗ (STB...)
+        if ($transferType !== 'in') {
+            return [
+                'processed' => false,
+                'ignored' => true,
+                'reason' => 'unsupported_transfer_type',
+            ];
+        }
+
         if (! preg_match('/\b(STB[A-Z0-9]{6,24})\b/', $searchText, $matches)) {
             return [
                 'processed' => false,

@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Services\SepayService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 
 class SepayWebhookController extends Controller
 {
@@ -36,6 +37,15 @@ class SepayWebhookController extends Controller
         }
 
         $result = $this->sepayService->handleWebhook($request->all());
+
+        Log::info('Sepay Webhook processed', [
+            'transfer_type' => $request->input('transferType'),
+            'account_number' => $request->input('accountNumber'),
+            'amount' => $request->input('transferAmount'),
+            'code' => $request->input('code'),
+            'content' => $request->input('content'),
+            'result' => $result,
+        ]);
 
         return response()->json([
             'success' => true,

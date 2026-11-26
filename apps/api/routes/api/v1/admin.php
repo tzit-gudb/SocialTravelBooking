@@ -14,6 +14,7 @@ use App\Http\Controllers\Api\V1\Admin\AdminServiceController;
 use App\Http\Controllers\Api\V1\Admin\AdminServiceInclusionController;
 use App\Http\Controllers\Api\V1\Admin\AdminServicePolicyController;
 use App\Http\Controllers\Api\V1\Admin\AdminUserController;
+use App\Http\Controllers\Api\V1\Admin\AdminWithdrawalController;
 use Illuminate\Support\Facades\Route;
 
 // Admin routes: /api/v1/admin/...
@@ -120,4 +121,11 @@ Route::get('/dashboard/chart', [AdminDashboardController::class, 'chart']);
 Route::prefix('bookings')->group(function () {
     Route::get('/', [AdminBookingController::class, 'index']);
     Route::get('/{id}', [AdminBookingController::class, 'show']);
+});
+
+// Phân hệ Đối soát & Chi trả Yêu cầu Rút tiền của Nhà cung cấp dịch vụ (Task #30)
+Route::prefix('withdrawals')->group(function () {
+    Route::get('/', [AdminWithdrawalController::class, 'index']);
+    Route::post('/{id}/confirm-paid', [AdminWithdrawalController::class, 'confirmPaid'])->whereNumber('id');
+    Route::post('/{id}/reject', [AdminWithdrawalController::class, 'reject'])->whereNumber('id');
 });
